@@ -11,7 +11,7 @@ const getBaseUrl = () => {
   }
   
   if (import.meta.env.PROD) {
-    return 'https://erp-multiagences.onrender.com'
+    return 'https://btperp-backend.onrender.com'
   }
   
   return 'http://127.0.0.1:8000'
