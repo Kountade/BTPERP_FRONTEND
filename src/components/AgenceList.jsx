@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-// ✅ SEULEMENT LES ICÔNES QUI EXISTENT DANS LUCIDE-REACT
 import { 
   Building2, 
   Plus, 
@@ -62,8 +61,8 @@ function AgenceList() {
   const [selectedAgence, setSelectedAgence] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ✅ Types d'agences avec des couleurs valides
   const TYPE_AGENCE = {
     siege: { label: 'Siège Social', icon: Building2, color: 'badge-error' },
     regionale: { label: 'Agence Régionale', icon: MapPin, color: 'badge-primary' },
@@ -97,8 +96,7 @@ function AgenceList() {
       if (error.response?.status === 401) {
         navigate('/login');
       } else {
-        setError('❌ Erreur lors du chargement des agences');
-        // Récupérer les données du cache local si disponible
+        setError('Erreur lors du chargement des agences');
         const cachedData = localStorage.getItem('agences_cache');
         if (cachedData) {
           setAgences(JSON.parse(cachedData));
@@ -107,6 +105,13 @@ function AgenceList() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Rafraîchir avec animation
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadAgences();
+    setTimeout(() => setIsRefreshing(false), 600);
   };
 
   // Sauvegarder en cache local
@@ -147,7 +152,7 @@ function AgenceList() {
       setSelectedAgence(null);
     } catch (error) {
       console.error('Erreur suppression:', error);
-      alert('❌ Erreur lors de la suppression');
+      alert('Erreur lors de la suppression');
     } finally {
       setIsDeleting(false);
     }
@@ -181,7 +186,7 @@ function AgenceList() {
 
   return (
     <div className="space-y-6 p-4">
-      {/* Header */}
+      {/* Header avec bouton rafraîchir */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -192,10 +197,23 @@ function AgenceList() {
             Gérez toutes vos agences et chantiers
           </p>
         </div>
-        <Link to="/agences/create" className="btn btn-primary gap-2">
-          <Plus className="w-5 h-5" />
-          Nouvelle agence
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* ✅ Bouton Rafraîchir */}
+          <button 
+            onClick={handleRefresh}
+            className={`btn btn-ghost btn-sm gap-1.5 ${isRefreshing ? 'animate-spin' : ''}`}
+            title="Rafraîchir la liste"
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </button>
+          
+          <Link to="/agences/create" className="btn btn-primary gap-2">
+            <Plus className="w-5 h-5" />
+            Nouvelle agence
+          </Link>
+        </div>
       </div>
 
       {/* Statistiques */}
@@ -265,9 +283,10 @@ function AgenceList() {
           </select>
 
           <button 
-            onClick={loadAgences} 
-            className="btn btn-ghost btn-sm gap-1"
+            onClick={handleRefresh} 
+            className={`btn btn-ghost btn-sm gap-1 ${isRefreshing ? 'animate-spin' : ''}`}
             title="Rafraîchir"
+            disabled={isRefreshing}
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -279,7 +298,7 @@ function AgenceList() {
         <div className="alert alert-warning shadow-lg">
           <AlertTriangle className="w-6 h-6" />
           <span>{error}</span>
-          <button onClick={loadAgences} className="btn btn-sm btn-ghost">Réessayer</button>
+          <button onClick={handleRefresh} className="btn btn-sm btn-ghost">Réessayer</button>
         </div>
       )}
 
