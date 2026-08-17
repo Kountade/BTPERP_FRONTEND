@@ -1,6 +1,27 @@
 // src/components/CreateAgence.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { 
+  Building2, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Globe, 
+  Ruler, 
+  Package, 
+  Truck, 
+  Users, 
+  Save, 
+  X, 
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  Warehouse,
+  Home,
+  Map,
+  HardHat
+} from 'lucide-react';
 import AxiosInstance from './AxiosInstance';
 
 function CreateAgence() {
@@ -27,30 +48,19 @@ function CreateAgence() {
     nb_employes_max: ''
   });
 
-  // ✅ État pour le mode hors ligne
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // ✅ Surveiller les changements de connexion
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log('📶 Connexion rétablie');
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.log('📡 Hors ligne');
-    };
-
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  // ✅ Charger les données si modification
   useEffect(() => {
     if (isEdit) {
       const loadAgence = async () => {
@@ -75,7 +85,7 @@ function CreateAgence() {
         } catch (error) {
           console.error('Erreur chargement:', error);
           setMessageType('error');
-          setMessage('❌ Erreur lors du chargement de l\'agence');
+          setMessage('Erreur lors du chargement');
         }
       };
       loadAgence();
@@ -84,13 +94,9 @@ function CreateAgence() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Réinitialiser le formulaire
   const resetForm = () => {
     setFormData({
       nom: '',
@@ -115,7 +121,6 @@ function CreateAgence() {
     setMessage(null);
     
     try {
-      // ✅ Nettoyer les données - convertir les nombres
       const dataToSend = {
         ...formData,
         superficie_m2: formData.superficie_m2 ? parseInt(formData.superficie_m2) : null,
@@ -131,372 +136,371 @@ function CreateAgence() {
         response = await AxiosInstance.post('/agences/', dataToSend);
       }
       
-      // ✅ Vérifier si la réponse est offline
       if (response.data && response.data.offline) {
         setMessageType('warning');
-        setMessage('💾 Agence sauvegardée localement. Synchronisation automatique à la reconnexion.');
-        // ✅ Réinitialiser le formulaire même en offline
-        if (!isEdit) {
-          resetForm();
-        }
+        setMessage('Sauvegardé localement - Sync auto à la reconnexion');
+        if (!isEdit) resetForm();
       } else {
         setMessageType('success');
-        setMessage(isEdit ? '✅ Agence modifiée avec succès !' : '✅ Agence créée avec succès !');
-        
-        if (!isEdit) {
-          resetForm();
-        }
-        
-        // ✅ Rediriger vers la liste après 2 secondes
-        setTimeout(() => {
-          navigate('/agences');
-        }, 2000);
+        setMessage(isEdit ? 'Agence modifiée avec succès' : 'Agence créée avec succès');
+        if (!isEdit) resetForm();
+        setTimeout(() => navigate('/agences'), 1500);
       }
       
     } catch (error) {
-      console.error('❌ Erreur création agence:', error);
+      console.error('Erreur:', error);
       
-      // ✅ Gestion des erreurs OFFLINE
       if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || !navigator.onLine) {
         setMessageType('warning');
-        setMessage('💾 Agence sauvegardée localement (hors ligne). Synchronisation automatique à la reconnexion.');
-        
-        // ✅ Réinitialiser le formulaire même en offline
-        if (!isEdit) {
-          resetForm();
-        }
+        setMessage('Sauvegardé localement - Sync auto à la reconnexion');
+        if (!isEdit) resetForm();
         setLoading(false);
         return;
       }
       
-      // ✅ Gestion des erreurs 401 (non authentifié)
       if (error.response?.status === 401) {
         setMessageType('error');
-        setMessage('🔒 Session expirée. Veuillez vous reconnecter.');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } 
-      // ✅ Gestion des erreurs 400 (validation)
-      else if (error.response?.status === 400) {
+        setMessage('Session expirée');
+        setTimeout(() => navigate('/login'), 1500);
+      } else if (error.response?.status === 400) {
         setMessageType('error');
         const errors = error.response.data;
-        const errorMessages = [];
-        
-        Object.keys(errors).forEach(key => {
-          const fieldErrors = errors[key];
-          if (Array.isArray(fieldErrors)) {
-            fieldErrors.forEach(err => {
-              errorMessages.push(`${key}: ${err}`);
-            });
-          } else {
-            errorMessages.push(`${key}: ${fieldErrors}`);
-          }
-        });
-        
-        setMessage(`❌ ${errorMessages.join(', ')}`);
-      } 
-      // ✅ Gestion des erreurs 403 (permission)
-      else if (error.response?.status === 403) {
+        const messages = Object.keys(errors).flatMap(key => 
+          Array.isArray(errors[key]) ? errors[key].map(e => `${key}: ${e}`) : `${key}: ${errors[key]}`
+        );
+        setMessage(messages.join(', '));
+      } else if (error.response?.status === 403) {
         setMessageType('error');
-        setMessage('⛔ Vous n\'avez pas la permission de créer une agence.');
-      } 
-      // ✅ Gestion des erreurs 500 (serveur)
-      else if (error.response?.status === 500) {
+        setMessage('Permission refusée');
+      } else if (error.response?.status === 500) {
         setMessageType('error');
-        setMessage('⚠️ Erreur serveur. Veuillez réessayer plus tard.');
-      } 
-      // ✅ Autres erreurs
-      else {
+        setMessage('Erreur serveur');
+      } else {
         setMessageType('error');
-        setMessage('❌ Erreur: ' + (error.message || 'Erreur inconnue'));
+        setMessage(error.message || 'Erreur inconnue');
       }
     }
-    
     setLoading(false);
   };
 
   return (
-    <div className="max-w-3xl mx-auto mt-8 p-6 bg-base-100 rounded-lg shadow-lg">
-      {/* ✅ Indicateur de connexion en haut du formulaire */}
-      <div className="flex items-center justify-between mb-4 pb-4 border-b border-base-200">
-        <h2 className="text-2xl font-bold">
-          {isEdit ? '✏️ Modifier l\'agence' : '🏗️ Créer une agence'}
-        </h2>
-        <div className={`badge ${isOnline ? 'badge-success' : 'badge-error'} gap-2`}>
-          <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></span>
-          {isOnline ? 'En ligne' : 'Hors ligne'}
-        </div>
-      </div>
-      
-      {/* ✅ Message d'alerte */}
-      {message && (
-        <div className={`alert-offline ${messageType} mb-4`}>
-          <span className="text-lg">
-            {messageType === 'success' ? '✅' : 
-             messageType === 'warning' ? '💾' : 
-             messageType === 'error' ? '❌' : 'ℹ️'}
-          </span>
-          <span>{message}</span>
-        </div>
-      )}
-      
-      {/* ✅ Avertissement hors ligne */}
-      {!isOnline && (
-        <div className="alert alert-warning mb-4 shadow-lg">
-          <span className="text-lg">📡</span>
-          <span>Vous êtes hors ligne. Les données seront sauvegardées localement et synchronisées automatiquement à la reconnexion.</span>
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Nom - colonne entière */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1">
-              Nom de l'agence <span className="text-error">*</span>
-            </label>
-            <input 
-              name="nom" 
-              value={formData.nom}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: Agence de Dakar"
-              required 
-            />
-          </div>
-          
-          {/* Type d'agence */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Type d'agence <span className="text-error">*</span>
-            </label>
-            <select 
-              name="type_agence" 
-              value={formData.type_agence}
-              onChange={handleChange}
-              className="select select-bordered w-full" 
-              required
-            >
-              <option value="siege">🏢 Siège Social</option>
-              <option value="regionale">📍 Agence Régionale</option>
-              <option value="chantier">🏗️ Base Vie Chantier</option>
-              <option value="logistique">📦 Dépôt Logistique</option>
-            </select>
-          </div>
-          
-          {/* Région */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Région <span className="text-error">*</span>
-            </label>
-            <select 
-              name="region" 
-              value={formData.region}
-              onChange={handleChange}
-              className="select select-bordered w-full" 
-              required
-            >
-              <option value="nord">Nord</option>
-              <option value="sud">Sud</option>
-              <option value="est">Est</option>
-              <option value="ouest">Ouest</option>
-              <option value="centre">Centre</option>
-              <option value="international">International</option>
-            </select>
-          </div>
-          
-          {/* Adresse - colonne entière */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1">
-              Adresse <span className="text-error">*</span>
-            </label>
-            <input 
-              name="adresse" 
-              value={formData.adresse}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: 123 Avenue de la République"
-              required 
-            />
-          </div>
-          
-          {/* Ville */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Ville <span className="text-error">*</span>
-            </label>
-            <input 
-              name="ville" 
-              value={formData.ville}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: Dakar"
-              required 
-            />
-          </div>
-          
-          {/* Code Postal */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Code Postal <span className="text-error">*</span>
-            </label>
-            <input 
-              name="code_postal" 
-              value={formData.code_postal}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: 10000"
-              required 
-            />
-          </div>
-          
-          {/* Téléphone */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Téléphone <span className="text-error">*</span>
-            </label>
-            <input 
-              name="telephone" 
-              value={formData.telephone}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: +221 77 123 45 67"
-              required 
-            />
-          </div>
-          
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Email <span className="text-error">*</span>
-            </label>
-            <input 
-              name="email" 
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: contact@agence.com"
-              required 
-            />
-          </div>
-          
-          {/* Pays */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Pays</label>
-            <input 
-              name="pays" 
-              value={formData.pays}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: France"
-            />
-          </div>
-
-          {/* Capacités BTP */}
-          <div className="col-span-2">
-            <div className="divider text-sm text-base-content/50">📊 Capacités BTP</div>
-          </div>
-
-          {/* Superficie */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Superficie (m²)</label>
-            <input 
-              name="superficie_m2" 
-              type="number"
-              value={formData.superficie_m2}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: 500"
-            />
-          </div>
-
-          {/* Capacité stockage */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Capacité stockage (m³)</label>
-            <input 
-              name="capacite_stockage" 
-              type="number"
-              step="0.01"
-              value={formData.capacite_stockage}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: 1000.50"
-            />
-          </div>
-
-          {/* Nb engins max */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Nb engins max</label>
-            <input 
-              name="nb_engins_max" 
-              type="number"
-              value={formData.nb_engins_max}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: 10"
-            />
-          </div>
-
-          {/* Nb employés max */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Nb employés max</label>
-            <input 
-              name="nb_employes_max" 
-              type="number"
-              value={formData.nb_employes_max}
-              onChange={handleChange}
-              className="input input-bordered w-full" 
-              placeholder="Ex: 50"
-            />
-          </div>
-        </div>
+    <div className="h-[calc(100vh-88px)] overflow-hidden bg-base-200">
+      <div className="h-full w-full bg-base-100 p-6 overflow-y-auto">
         
-        {/* ✅ Boutons */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-4">
-          <button 
-            type="submit" 
-            className="btn btn-primary flex-1"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="loading loading-spinner loading-sm"></span>
-                {isEdit ? 'Modification en cours...' : 'Création en cours...'}
-              </>
-            ) : (
-              isEdit ? '✏️ Modifier l\'agence' : '🏗️ Créer l\'agence'
-            )}
-          </button>
+        {/* En-tête */}
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-base-200 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold">
+              {isEdit ? 'Modifier l\'agence' : 'Nouvelle agence'}
+            </h2>
+          </div>
           
-          <button 
-            type="button" 
-            className="btn btn-ghost"
-            onClick={() => navigate('/agences')}
-          >
-            Annuler
-          </button>
-          
-          {!isEdit && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className={`badge ${isOnline ? 'badge-success' : 'badge-error'} gap-1.5 px-3 py-2.5`}>
+              {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              {isOnline ? 'En ligne' : 'Hors ligne'}
+            </div>
             <button 
               type="button" 
-              className="btn btn-ghost btn-sm"
-              onClick={resetForm}
-              disabled={loading}
+              className="btn btn-ghost btn-sm gap-1"
+              onClick={() => navigate('/agences')}
             >
-              Réinitialiser
+              <X className="w-4 h-4" />
+              Fermer
             </button>
-          )}
+          </div>
         </div>
-        
-        {/* ✅ Information offline */}
-        {!isOnline && (
-          <div className="text-center text-xs text-base-content/40 mt-2">
-            💾 Les données seront sauvegardées localement et synchronisées automatiquement
+
+        {/* Message */}
+        {message && (
+          <div className={`alert-offline ${messageType} mb-3 py-2 px-3`}>
+            {message}
           </div>
         )}
-      </form>
+
+        {/* Avertissement hors ligne */}
+        {!isOnline && (
+          <div className="alert alert-warning mb-3 py-2 shadow-sm">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Hors ligne - Sauvegarde locale automatique</span>
+          </div>
+        )}
+
+        {/* Formulaire */}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            
+            {/* Nom */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium mb-1">
+                <Building2 className="w-4 h-4 inline mr-1.5" />
+                Nom <span className="text-error">*</span>
+              </label>
+              <input 
+                name="nom" 
+                value={formData.nom}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Nom de l'agence"
+                required 
+              />
+            </div>
+            
+            {/* Type */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Home className="w-4 h-4 inline mr-1.5" />
+                Type <span className="text-error">*</span>
+              </label>
+              <select 
+                name="type_agence" 
+                value={formData.type_agence}
+                onChange={handleChange}
+                className="select select-bordered w-full" 
+                required
+              >
+                <option value="siege">Siège Social</option>
+                <option value="regionale">Agence Régionale</option>
+                <option value="chantier">Base Vie Chantier</option>
+                <option value="logistique">Dépôt Logistique</option>
+              </select>
+            </div>
+            
+            {/* Région */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Map className="w-4 h-4 inline mr-1.5" />
+                Région <span className="text-error">*</span>
+              </label>
+              <select 
+                name="region" 
+                value={formData.region}
+                onChange={handleChange}
+                className="select select-bordered w-full" 
+                required
+              >
+                <option value="nord">Nord</option>
+                <option value="sud">Sud</option>
+                <option value="est">Est</option>
+                <option value="ouest">Ouest</option>
+                <option value="centre">Centre</option>
+                <option value="international">International</option>
+              </select>
+            </div>
+            
+            {/* Adresse */}
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-medium mb-1">
+                <MapPin className="w-4 h-4 inline mr-1.5" />
+                Adresse <span className="text-error">*</span>
+              </label>
+              <input 
+                name="adresse" 
+                value={formData.adresse}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Adresse complète"
+                required 
+              />
+            </div>
+            
+            {/* Ville */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Ville <span className="text-error">*</span>
+              </label>
+              <input 
+                name="ville" 
+                value={formData.ville}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Ville"
+                required 
+              />
+            </div>
+            
+            {/* Code Postal */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Code Postal <span className="text-error">*</span>
+              </label>
+              <input 
+                name="code_postal" 
+                value={formData.code_postal}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Code postal"
+                required 
+              />
+            </div>
+            
+            {/* Téléphone */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Phone className="w-4 h-4 inline mr-1.5" />
+                Téléphone <span className="text-error">*</span>
+              </label>
+              <input 
+                name="telephone" 
+                value={formData.telephone}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Téléphone"
+                required 
+              />
+            </div>
+            
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Mail className="w-4 h-4 inline mr-1.5" />
+                Email <span className="text-error">*</span>
+              </label>
+              <input 
+                name="email" 
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Email"
+                required 
+              />
+            </div>
+            
+            {/* Pays */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Globe className="w-4 h-4 inline mr-1.5" />
+                Pays
+              </label>
+              <input 
+                name="pays" 
+                value={formData.pays}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Pays"
+              />
+            </div>
+
+            {/* Séparateur */}
+            <div className="col-span-full">
+              <div className="divider text-sm text-base-content/40 my-1">Capacités BTP</div>
+            </div>
+
+            {/* Superficie */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Ruler className="w-4 h-4 inline mr-1.5" />
+                Superficie (m²)
+              </label>
+              <input 
+                name="superficie_m2" 
+                type="number"
+                value={formData.superficie_m2}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Superficie en m²"
+              />
+            </div>
+
+            {/* Capacité stockage */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Warehouse className="w-4 h-4 inline mr-1.5" />
+                Stockage (m³)
+              </label>
+              <input 
+                name="capacite_stockage" 
+                type="number"
+                step="0.01"
+                value={formData.capacite_stockage}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Capacité en m³"
+              />
+            </div>
+
+            {/* Nb engins max */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Truck className="w-4 h-4 inline mr-1.5" />
+                Engins max
+              </label>
+              <input 
+                name="nb_engins_max" 
+                type="number"
+                value={formData.nb_engins_max}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Nombre d'engins max"
+              />
+            </div>
+
+            {/* Nb employés max */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Users className="w-4 h-4 inline mr-1.5" />
+                Employés max
+              </label>
+              <input 
+                name="nb_employes_max" 
+                type="number"
+                value={formData.nb_employes_max}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Nombre d'employés max"
+              />
+            </div>
+          </div>
+          
+          {/* Boutons */}
+          <div className="flex flex-wrap gap-3 pt-4 border-t border-base-200">
+            <button 
+              type="submit" 
+              className="btn btn-primary flex-1 min-w-[120px] gap-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {loading ? 'En cours...' : (isEdit ? 'Modifier' : 'Créer')}
+            </button>
+            
+            <button 
+              type="button" 
+              className="btn btn-ghost gap-2"
+              onClick={() => navigate('/agences')}
+            >
+              <X className="w-4 h-4" />
+              Annuler
+            </button>
+            
+            {!isEdit && (
+              <button 
+                type="button" 
+                className="btn btn-ghost gap-2"
+                onClick={resetForm}
+                disabled={loading}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Réinitialiser
+              </button>
+            )}
+          </div>
+          
+          {/* Info offline */}
+          {!isOnline && (
+            <div className="text-center text-xs text-base-content/40 mt-1">
+              Sauvegarde locale - Synchronisation automatique à la reconnexion
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
