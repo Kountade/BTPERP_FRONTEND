@@ -20,6 +20,11 @@ import Utilisateurs from './components/users/Utilisateurs';
 import UtilisateurForm from './components/users/UtilisateurForm';
 import UtilisateurDetails from './components/users/UtilisateurDetails';
 
+import ServicesList from './components/grh/ServicesList';
+import ServiceForm from './components/grh/ServiceForm';
+import ServiceDetails from './components/grh/ServiceDetails';
+
+
 function App() {
   const location = useLocation();
   
@@ -56,8 +61,7 @@ function App() {
                 <Route path="/agences" element={<AgenceList />} />
                 <Route path="/agences/create" element={<CreateAgence />} />
                 <Route path="/agences/edit/:id" element={<CreateAgence />} />
-
-              
+       
                 <Route path="/utilisateurs" element={<Utilisateurs />} />
                 <Route path="/utilisateurs/create" element={<UtilisateurForm />} />
                 <Route path="/utilisateurs/edit/:id" element={<UtilisateurForm />} />
@@ -66,6 +70,13 @@ function App() {
                 {/* ==================== FINANCES ==================== 
                 <Route path="/finances-dashboard" element={<FinancesDashboard />} />
                 */}
+
+              
+                <Route path="/services" element={<ServicesList />} />
+                <Route path="/services/create" element={<ServiceForm />} />
+                <Route path="/services/edit/:id" element={<ServiceForm />} />
+                <Route path="/services/:id" element={<ServiceDetails />} />        
+                  
 
                 {/* ==================== LIVRAISONS ==================== 
                 <Route path="/livraisons" element={<DeliveriesList />} />

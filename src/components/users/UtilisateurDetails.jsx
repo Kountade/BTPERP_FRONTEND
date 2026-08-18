@@ -25,9 +25,19 @@ import {
   Clock,
   Wifi,
   WifiOff,
-  AlertTriangle
+  AlertTriangle,
+  Home,
+  Globe,
+  UserCheck,
+  Briefcase,
+  FileText,
+  CreditCard,
+  DollarSign,
+  ShieldCheck,
+  UserCog
 } from 'lucide-react';
-import AxiosInstance from '../AxiosInstance'
+import AxiosInstance from '../AxiosInstance';
+import cacheService from '../../services/CacheService';
 
 function UtilisateurDetails() {
   const navigate = useNavigate();
@@ -36,6 +46,7 @@ function UtilisateurDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [agencePrincipale, setAgencePrincipale] = useState(null);
 
   // Configuration des rôles
   const ROLE_CONFIG = {
@@ -52,7 +63,8 @@ function UtilisateurDetails() {
     acheteur: { label: 'Acheteur', icon: Package, color: 'badge-primary' },
     securite: { label: 'Sécurité', icon: Shield, color: 'badge-error' },
     responsable_qualite: { label: 'Responsable Qualité', icon: CheckCircle, color: 'badge-success' },
-    assistant_chantier: { label: 'Assistant Chantier', icon: Users, color: 'badge-info' }
+    assistant_chantier: { label: 'Assistant Chantier', icon: Users, color: 'badge-info' },
+    assistant_admin: { label: 'Assistant Admin', icon: UserCircle, color: 'badge-ghost' }
   };
 
   const CONTRACT_LABELS = {
@@ -60,7 +72,9 @@ function UtilisateurDetails() {
     cdd: 'CDD',
     interim: 'Intérim',
     apprenti: 'Apprenti',
-    stagiaire: 'Stagiaire'
+    stagiaire: 'Stagiaire',
+    auto_entrepreneur: 'Auto-Entrepreneur',
+    portage: 'Portage Salarial'
   };
 
   // Surveiller la connexion
@@ -90,14 +104,36 @@ function UtilisateurDetails() {
           headers: { Authorization: `Token ${token}` }
         });
 
-        setUser(response.data);
+        const userData = response.data;
+        setUser(userData);
         setError(null);
+
+        // ✅ Récupérer l'agence principale
+        if (userData.agence_principale) {
+          setAgencePrincipale(userData.agence_principale);
+        } else if (userData.roles_agence && userData.roles_agence.length > 0) {
+          // Si pas d'agence principale, prendre la première
+          const firstRole = userData.roles_agence[0];
+          setAgencePrincipale({
+            id: firstRole.agence_id,
+            nom: firstRole.agence_nom,
+            type: firstRole.agence_type
+          });
+        }
+
       } catch (error) {
         console.error('Erreur chargement:', error);
         if (error.response?.status === 401) {
           navigate('/login');
         } else {
           setError('Erreur lors du chargement des détails');
+          
+          // Essayer le cache
+          const cachedUser = await cacheService.getCachedUserById(id);
+          if (cachedUser) {
+            setUser(cachedUser);
+            setError('Données chargées depuis le cache local');
+          }
         }
       } finally {
         setLoading(false);
@@ -123,8 +159,22 @@ function UtilisateurDetails() {
         headers: { Authorization: `Token ${token}` }
       });
 
-      setUser(response.data);
+      const userData = response.data;
+      setUser(userData);
       setError(null);
+
+      // ✅ Mettre à jour l'agence principale
+      if (userData.agence_principale) {
+        setAgencePrincipale(userData.agence_principale);
+      } else if (userData.roles_agence && userData.roles_agence.length > 0) {
+        const firstRole = userData.roles_agence[0];
+        setAgencePrincipale({
+          id: firstRole.agence_id,
+          nom: firstRole.agence_nom,
+          type: firstRole.agence_type
+        });
+      }
+
     } catch (error) {
       console.error('Erreur rafraîchissement:', error);
       setError('Erreur lors du rafraîchissement');
@@ -241,11 +291,42 @@ function UtilisateurDetails() {
         </div>
       </div>
 
+      {/* ✅ AGENCE PRINCIPALE - En évidence */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg shadow-sm p-6 border border-primary/20">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-primary/20 rounded-xl">
+            <Building2 className="w-6 h-6 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-base-content/60">Agence principale</h3>
+            {agencePrincipale ? (
+              <div>
+                <p className="text-lg font-semibold">{agencePrincipale.nom}</p>
+                <p className="text-sm text-base-content/60">
+                  {agencePrincipale.type === 'siege' ? '🏢 Siège Social' :
+                   agencePrincipale.type === 'regionale' ? '📍 Agence Régionale' :
+                   agencePrincipale.type === 'chantier' ? '🏗️ Base Vie Chantier' :
+                   agencePrincipale.type === 'logistique' ? '📦 Dépôt Logistique' : 'Agence'}
+                </p>
+              </div>
+            ) : (
+              <p className="text-base-content/40">Aucune agence principale assignée</p>
+            )}
+          </div>
+          <div className="badge badge-primary badge-lg">
+            {user.role_global === 'pdg' ? 'Accès total' : 'Affecté'}
+          </div>
+        </div>
+      </div>
+
       {/* Informations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informations personnelles */}
         <div className="bg-base-100 rounded-lg shadow-sm p-6 border border-base-200">
-          <h3 className="text-lg font-semibold mb-4">Informations personnelles</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <UserCircle className="w-5 h-5 text-primary" />
+            Informations personnelles
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <UserCircle className="w-4 h-4 text-base-content/40" />
@@ -275,23 +356,35 @@ function UtilisateurDetails() {
                 </span>
               </div>
             )}
+            {user.employee_id && (
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-base-content/40" />
+                <span className="text-sm">
+                  <strong>Matricule:</strong> {user.employee_id}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Rôles et agences */}
         <div className="bg-base-100 rounded-lg shadow-sm p-6 border border-base-200">
-          <h3 className="text-lg font-semibold mb-4">Rôles et agences</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            Rôles et agences
+          </h3>
           {user.role_global === 'pdg' ? (
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-error" />
+            <div className="flex items-center gap-2 p-3 bg-error/10 rounded-lg">
+              <Shield className="w-5 h-5 text-error" />
               <span className="text-sm font-medium text-error">PDG - Accès total sur toutes les agences</span>
             </div>
           ) : (
             <div className="space-y-3">
               {user.roles_agence?.map((role, index) => {
                 const config = ROLE_CONFIG[role.role];
+                const isActive = role.est_actif !== false;
                 return (
-                  <div key={index} className="flex items-center justify-between p-2 bg-base-200/50 rounded-lg">
+                  <div key={index} className={`flex items-center justify-between p-2 rounded-lg ${isActive ? 'bg-base-200/50' : 'bg-error/10'}`}>
                     <div className="flex items-center gap-2">
                       <span className={`badge ${config?.color || 'badge-ghost'} gap-1`}>
                         {config && <config.icon className="w-3 h-3" />}
@@ -301,8 +394,8 @@ function UtilisateurDetails() {
                         {role.agence_nom}
                       </span>
                     </div>
-                    <span className="text-xs text-base-content/40">
-                      {role.est_actif ? 'Actif' : 'Inactif'}
+                    <span className={`text-xs ${isActive ? 'text-success' : 'text-error'}`}>
+                      {isActive ? '✅ Actif' : '❌ Inactif'}
                     </span>
                   </div>
                 );
@@ -316,7 +409,10 @@ function UtilisateurDetails() {
 
         {/* Informations RH */}
         <div className="bg-base-100 rounded-lg shadow-sm p-6 border border-base-200">
-          <h3 className="text-lg font-semibold mb-4">Informations RH</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-primary" />
+            Informations RH
+          </h3>
           <div className="space-y-3">
             {user.employee_id && (
               <div className="flex items-center gap-2">
@@ -336,9 +432,17 @@ function UtilisateurDetails() {
             )}
             {user.contract_type && (
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-base-content/40" />
+                <FileText className="w-4 h-4 text-base-content/40" />
                 <span className="text-sm">
                   <strong>Type de contrat:</strong> {CONTRACT_LABELS[user.contract_type] || user.contract_type}
+                </span>
+              </div>
+            )}
+            {user.contract_end_date && (
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-base-content/40" />
+                <span className="text-sm">
+                  <strong>Fin de contrat:</strong> {new Date(user.contract_end_date).toLocaleDateString('fr-FR')}
                 </span>
               </div>
             )}
@@ -350,12 +454,23 @@ function UtilisateurDetails() {
                 </span>
               </div>
             )}
+            {user.salary && (
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-base-content/40" />
+                <span className="text-sm">
+                  <strong>Salaire:</strong> {parseFloat(user.salary).toLocaleString()} €
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Activité */}
         <div className="bg-base-100 rounded-lg shadow-sm p-6 border border-base-200">
-          <h3 className="text-lg font-semibold mb-4">Activité</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Activité
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-base-content/40" />
@@ -370,16 +485,56 @@ function UtilisateurDetails() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-base-content/40" />
+              <UserCheck className="w-4 h-4 text-base-content/40" />
+              <span className="text-sm">
+                <strong>Statut:</strong> {user.is_active ? '✅ Actif' : '❌ Inactif'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-base-content/40" />
               <span className="text-sm">
                 <strong>Staff:</strong> {user.is_staff ? 'Oui' : 'Non'}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-base-content/40" />
+              <UserCog className="w-4 h-4 text-base-content/40" />
               <span className="text-sm">
                 <strong>Superuser:</strong> {user.is_superuser ? 'Oui' : 'Non'}
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ✅ Détails supplémentaires */}
+        <div className="lg:col-span-2 bg-base-100 rounded-lg shadow-sm p-6 border border-base-200">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Globe className="w-5 h-5 text-primary" />
+            Autres informations
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs font-medium text-base-content/40 uppercase">Rôle global</p>
+              <p className="text-sm mt-1">{user.role_global === 'pdg' ? 'PDG' : 'Autre'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-base-content/40 uppercase">Spécialités secondaires</p>
+              <p className="text-sm mt-1">
+                {user.specialites_secondaires?.length > 0 
+                  ? user.specialites_secondaires.join(', ') 
+                  : 'Aucune'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-base-content/40 uppercase">Disponible</p>
+              <p className="text-sm mt-1">
+                {user.disponible !== false ? '✅ Oui' : '❌ Non'}
+                {user.disponible_date_debut && (
+                  <span className="text-xs text-base-content/40 block">
+                    Du {new Date(user.disponible_date_debut).toLocaleDateString('fr-FR')}
+                    {user.disponible_date_fin && ` au ${new Date(user.disponible_date_fin).toLocaleDateString('fr-FR')}`}
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         </div>
@@ -388,7 +543,10 @@ function UtilisateurDetails() {
       {/* Adresse */}
       {(user.address || user.city || user.postal_code || user.country) && (
         <div className="bg-base-100 rounded-lg shadow-sm p-6 border border-base-200">
-          <h3 className="text-lg font-semibold mb-4">Adresse</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-primary" />
+            Adresse
+          </h3>
           <div className="space-y-2">
             {user.address && (
               <p className="flex items-center gap-2 text-sm">
