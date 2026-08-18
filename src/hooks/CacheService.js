@@ -1,6 +1,8 @@
 // src/services/CacheService.js
 import localforage from 'localforage';
-import AxiosInstance from '../components/AxiosInstance';  // ← CORRIGÉ
+
+// ✅ IMPORT CORRIGÉ - remonter jusqu'à components
+import AxiosInstance from '../components/AxiosInstance';
 
 // Configuration d'IndexedDB
 const db = localforage.createInstance({
@@ -45,6 +47,8 @@ class CacheService {
         window.addEventListener('online', () => {
             this.isOnline = true;
             console.log('🔗 Connexion rétablie - Synchronisation automatique');
+            // ✅ Déclencher la synchronisation automatique
+            this.syncPendingData();
         });
         window.addEventListener('offline', () => {
             this.isOnline = false;
@@ -311,7 +315,7 @@ class CacheService {
     // SYSTÈME DE SYNCHRONISATION
     // ============================================================
 
-    async syncPendingData(axiosInstance) {
+    async syncPendingData() {
         if (!this.isOnline) {
             console.log('📴 Hors ligne - Synchronisation impossible');
             return { success: false, message: 'Hors ligne' };
@@ -332,7 +336,7 @@ class CacheService {
                 let response;
                 switch (operation.type) {
                     case 'CREATE_USER':
-                        response = await axiosInstance.post('/register/', operation.data, {
+                        response = await AxiosInstance.post('/register/', operation.data, {
                             headers: { Authorization: `Token ${token}` }
                         });
                         if (response.data) {
@@ -341,7 +345,7 @@ class CacheService {
                         break;
 
                     case 'UPDATE_USER':
-                        response = await axiosInstance.put(`/users/${operation.userId}/`, operation.data, {
+                        response = await AxiosInstance.put(`/users/${operation.userId}/`, operation.data, {
                             headers: { Authorization: `Token ${token}` }
                         });
                         if (response.data) {
@@ -350,14 +354,14 @@ class CacheService {
                         break;
 
                     case 'DELETE_USER':
-                        await axiosInstance.delete(`/users/${operation.userId}/`, {
+                        await AxiosInstance.delete(`/users/${operation.userId}/`, {
                             headers: { Authorization: `Token ${token}` }
                         });
                         await this.deleteUserLocally(operation.userId);
                         break;
 
                     case 'ASSIGN_ROLE':
-                        response = await axiosInstance.post(`/users/${operation.userId}/assign_role/`, operation.data, {
+                        response = await AxiosInstance.post(`/users/${operation.userId}/assign_role/`, operation.data, {
                             headers: { Authorization: `Token ${token}` }
                         });
                         if (response.data) {
@@ -401,7 +405,7 @@ class CacheService {
 
         // Recharger les agences après sync
         if (results.some(r => r.success)) {
-            await this.refreshAgencesFromAPI(axiosInstance);
+            await this.refreshAgencesFromAPI();
         }
 
         console.log(`📊 Synchronisation terminée: ${results.filter(r => r.success).length} succès`);
@@ -412,10 +416,12 @@ class CacheService {
         };
     }
 
-    async refreshAgencesFromAPI(axiosInstance) {
+    async refreshAgencesFromAPI() {
         try {
             const token = localStorage.getItem('Token');
-            const response = await axiosInstance.get('/agences/', {
+            if (!token) return;
+            
+            const response = await AxiosInstance.get('/agences/', {
                 headers: { Authorization: `Token ${token}` }
             });
             if (response.data) {

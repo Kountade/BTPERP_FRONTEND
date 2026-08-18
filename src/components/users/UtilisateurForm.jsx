@@ -1,30 +1,15 @@
-// src/components/users/UtilisateurForm.jsx
+// src/components/users/UtilisateurForm.jsx - VERSION SIMPLIFIÉE
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  UserCircle, 
-  Mail, 
-  Phone, 
-  Building2, 
-  Shield, 
-  Save, 
-  X, 
-  RefreshCw,
-  Wifi,
-  WifiOff,
-  AlertTriangle,
-  Users,
-  HardHat,
-  Award,
-  Calendar,
-  MapPin,
-  CheckCircle,
-  XCircle,
-  Eye,
-  EyeOff,
-  Key
+  UserCircle, Mail, Phone, Building2, Shield, Save, X, RefreshCw,
+  Wifi, WifiOff, AlertTriangle, Users, HardHat, Award, Calendar, 
+  MapPin, CheckCircle, Eye, EyeOff, Key
 } from 'lucide-react';
 import AxiosInstance from '../AxiosInstance';
+
+// ✅ IMPORTER CacheService
+import cacheService from '../../services/CacheService';
 
 function UtilisateurForm() {
   const navigate = useNavigate();
@@ -96,6 +81,7 @@ function UtilisateurForm() {
     { value: 'menuiserie', label: 'Menuiserie' }
   ];
 
+  // ✅ Surveiller la connexion
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -107,22 +93,45 @@ function UtilisateurForm() {
     };
   }, []);
 
+  // ✅ Charger les agences
   useEffect(() => {
     const loadAgences = async () => {
       try {
-        const token = localStorage.getItem('Token');
-        if (!token) return;
-        const response = await AxiosInstance.get('/agences/', {
-          headers: { Authorization: `Token ${token}` }
-        });
-        setAgences(response.data || []);
+        // 1. Essayer le cache d'abord
+        const cached = await cacheService.getCachedAgences();
+        if (cached && cached.length > 0) {
+          console.log('💾 Agences depuis le cache:', cached.length);
+          setAgences(cached);
+          return;
+        }
+
+        // 2. Si en ligne, charger depuis l'API
+        if (navigator.onLine) {
+          const token = localStorage.getItem('Token');
+          if (!token) return;
+          
+          const response = await AxiosInstance.get('/agences/', {
+            headers: { Authorization: `Token ${token}` }
+          });
+          
+          const data = response.data || [];
+          setAgences(data);
+          await cacheService.cacheAgences(data);
+          console.log('✅ Agences depuis l\'API:', data.length);
+        }
       } catch (error) {
         console.error('Erreur chargement agences:', error);
+        // En cas d'erreur, essayer le cache
+        const cached = await cacheService.getCachedAgences();
+        if (cached && cached.length > 0) {
+          setAgences(cached);
+        }
       }
     };
     loadAgences();
   }, []);
 
+  // ✅ Charger l'utilisateur si édition
   useEffect(() => {
     if (isEdit) {
       const loadUser = async () => {
@@ -228,31 +237,37 @@ function UtilisateurForm() {
         });
       }
 
-      if (response.data && response.data.offline) {
-        setMessageType('warning');
-        setMessage('Sauvegardé localement - Sync auto à la reconnexion');
-        if (!isEdit) resetForm();
-      } else {
-        setMessageType('success');
-        setMessage(isEdit ? 'Utilisateur modifié avec succès' : 'Utilisateur créé avec succès');
-        if (!isEdit) resetForm();
-        setTimeout(() => navigate('/utilisateurs'), 1500);
-      }
+      setMessageType('success');
+      setMessage(isEdit ? '✅ Utilisateur modifié avec succès' : '✅ Utilisateur créé avec succès');
+      if (!isEdit) resetForm();
+      setTimeout(() => navigate('/utilisateurs'), 1500);
 
     } catch (error) {
       console.error('Erreur:', error);
 
-      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || !navigator.onLine) {
-        setMessageType('warning');
-        setMessage('Sauvegardé localement - Sync auto à la reconnexion');
-        if (!isEdit) resetForm();
+      // ✅ Gestion hors ligne
+      if (!navigator.onLine || error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+        try {
+          await cacheService.addPendingOperation({
+            type: isEdit ? 'UPDATE_USER' : 'CREATE_USER',
+            data: formData,
+            userId: isEdit ? id : undefined
+          });
+          
+          setMessageType('warning');
+          setMessage('💾 Utilisateur sauvegardé localement - Synchronisation automatique à la reconnexion');
+          if (!isEdit) resetForm();
+        } catch (cacheError) {
+          setMessageType('error');
+          setMessage('❌ Erreur lors de la sauvegarde locale');
+        }
         setLoading(false);
         return;
       }
 
       if (error.response?.status === 401) {
         setMessageType('error');
-        setMessage('Session expirée');
+        setMessage('🔒 Session expirée');
         setTimeout(() => navigate('/login'), 1500);
       } else if (error.response?.status === 400) {
         setMessageType('error');
@@ -260,16 +275,13 @@ function UtilisateurForm() {
         const messages = Object.keys(errors).flatMap(key => 
           Array.isArray(errors[key]) ? errors[key].map(e => `${key}: ${e}`) : `${key}: ${errors[key]}`
         );
-        setMessage(messages.join(', '));
+        setMessage(`❌ ${messages.join(', ')}`);
       } else if (error.response?.status === 403) {
         setMessageType('error');
-        setMessage('Permission refusée');
-      } else if (error.response?.status === 500) {
-        setMessageType('error');
-        setMessage('Erreur serveur');
+        setMessage('⛔ Permission refusée');
       } else {
         setMessageType('error');
-        setMessage(error.message || 'Erreur inconnue');
+        setMessage(`❌ ${error.message || 'Erreur inconnue'}`);
       }
     }
     setLoading(false);
@@ -290,7 +302,7 @@ function UtilisateurForm() {
     <div className="h-[calc(100vh-88px)] overflow-hidden bg-base-200">
       <div className="h-full w-full bg-base-100 p-6 overflow-y-auto">
         
-        {/* En-tête - IDENTIQUE À CreateAgence */}
+        {/* En-tête */}
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-base-200 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
@@ -328,11 +340,11 @@ function UtilisateurForm() {
         {!isOnline && (
           <div className="alert alert-warning mb-3 py-2 shadow-sm">
             <AlertTriangle className="w-4 h-4" />
-            <span>Hors ligne - Sauvegarde locale automatique</span>
+            <span>Hors ligne - Les données seront synchronisées automatiquement</span>
           </div>
         )}
 
-        {/* Formulaire - IDENTIQUE À CreateAgence */}
+        {/* Formulaire */}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             
@@ -367,7 +379,7 @@ function UtilisateurForm() {
                   value={formData.password}
                   onChange={handleChange}
                   className="input input-bordered w-full pr-10" 
-                  placeholder={isEdit ? 'Laisser vide pour conserver' : 'Mot de passe'}
+                  placeholder={isEdit ? 'Laisser vide' : 'Mot de passe'}
                   required={!isEdit}
                   minLength={6}
                 />
@@ -400,9 +412,7 @@ function UtilisateurForm() {
 
             {/* Prénom */}
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Prénom
-              </label>
+              <label className="block text-sm font-medium mb-1">Prénom</label>
               <input 
                 name="first_name" 
                 value={formData.first_name}
@@ -414,9 +424,7 @@ function UtilisateurForm() {
 
             {/* Nom */}
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Nom
-              </label>
+              <label className="block text-sm font-medium mb-1">Nom</label>
               <input 
                 name="last_name" 
                 value={formData.last_name}
@@ -493,7 +501,7 @@ function UtilisateurForm() {
                 className="select select-bordered w-full"
                 disabled={formData.role_global === 'pdg' || !formData.agence_id}
               >
-                <option value="">Sélectionner un rôle</option>
+                <option value="">Sélectionner</option>
                 {ROLE_AGENCE_CHOICES.map(role => (
                   <option key={role.value} value={role.value}>
                     {role.label}
@@ -519,9 +527,7 @@ function UtilisateurForm() {
 
             {/* Type de contrat */}
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Type de contrat
-              </label>
+              <label className="block text-sm font-medium mb-1">Contrat</label>
               <select 
                 name="contract_type" 
                 value={formData.contract_type}
@@ -573,7 +579,7 @@ function UtilisateurForm() {
               </select>
             </div>
 
-            {/* Adresse - colonne entière */}
+            {/* Adresse */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1">
                 <MapPin className="w-4 h-4 inline mr-1.5" />
@@ -590,9 +596,7 @@ function UtilisateurForm() {
 
             {/* Ville */}
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Ville
-              </label>
+              <label className="block text-sm font-medium mb-1">Ville</label>
               <input 
                 name="city" 
                 value={formData.city}
@@ -604,9 +608,7 @@ function UtilisateurForm() {
 
             {/* Code Postal */}
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Code Postal
-              </label>
+              <label className="block text-sm font-medium mb-1">Code Postal</label>
               <input 
                 name="postal_code" 
                 value={formData.postal_code}
@@ -618,9 +620,7 @@ function UtilisateurForm() {
 
             {/* Pays */}
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Pays
-              </label>
+              <label className="block text-sm font-medium mb-1">Pays</label>
               <input 
                 name="country" 
                 value={formData.country}
@@ -631,7 +631,7 @@ function UtilisateurForm() {
             </div>
           </div>
           
-          {/* Boutons - IDENTIQUE À CreateAgence */}
+          {/* Boutons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t border-base-200">
             <button 
               type="submit" 
@@ -667,13 +667,6 @@ function UtilisateurForm() {
               </button>
             )}
           </div>
-          
-          {/* Info offline */}
-          {!isOnline && (
-            <div className="text-center text-xs text-base-content/40 mt-1">
-              Sauvegarde locale - Synchronisation automatique à la reconnexion
-            </div>
-          )}
         </form>
       </div>
     </div>
