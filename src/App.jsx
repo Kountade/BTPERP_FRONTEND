@@ -24,6 +24,11 @@ import ServicesList from './components/grh/ServicesList';
 import ServiceForm from './components/grh/ServiceForm';
 import ServiceDetails from './components/grh/ServiceDetails';
 
+import PostesList from './components/grh/PostesList';
+import PosteForm from './components/grh/PosteForm';
+import PosteDetails from './components/grh/PosteDetails';
+
+
 
 function App() {
   const location = useLocation();
@@ -75,7 +80,12 @@ function App() {
                 <Route path="/services" element={<ServicesList />} />
                 <Route path="/services/create" element={<ServiceForm />} />
                 <Route path="/services/edit/:id" element={<ServiceForm />} />
-                <Route path="/services/:id" element={<ServiceDetails />} />        
+                <Route path="/services/:id" element={<ServiceDetails />} />   
+
+                <Route path="/postes" element={<PostesList />} />
+                <Route path="/postes/create" element={<PosteForm />} />
+                <Route path="/postes/edit/:id" element={<PosteForm />} />
+                <Route path="/postes/:id" element={<PosteDetails />} />    
                   
 
                 {/* ==================== LIVRAISONS ==================== 
