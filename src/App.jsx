@@ -10,8 +10,15 @@ import PasswordResetRequest from './components/PasswordResetRequest';
 import PasswordReset from './components/PasswordReset';
 
 // ✅ Import des composants AGENCES
-import AgenceList from './components/AgenceList';
-import CreateAgence from './components/CreateAgence';
+import AgenceList from './components/users/AgenceList';
+import CreateAgence from './components/users/CreateAgence';
+
+
+// ✅ Import des composants AGENCES
+
+import Utilisateurs from './components/users/Utilisateurs';
+import UtilisateurForm from './components/users/UtilisateurForm';
+import UtilisateurDetails from './components/users/UtilisateurDetails';
 
 function App() {
   const location = useLocation();
@@ -49,6 +56,12 @@ function App() {
                 <Route path="/agences" element={<AgenceList />} />
                 <Route path="/agences/create" element={<CreateAgence />} />
                 <Route path="/agences/edit/:id" element={<CreateAgence />} />
+
+              
+                <Route path="/utilisateurs" element={<Utilisateurs />} />
+                <Route path="/utilisateurs/create" element={<UtilisateurForm />} />
+                <Route path="/utilisateurs/edit/:id" element={<UtilisateurForm />} />
+                <Route path="/utilisateurs/:id" element={<UtilisateurDetails />} />
 
                 {/* ==================== FINANCES ==================== 
                 <Route path="/finances-dashboard" element={<FinancesDashboard />} />

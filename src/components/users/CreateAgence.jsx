@@ -22,7 +22,7 @@ import {
   Map,
   HardHat
 } from 'lucide-react';
-import AxiosInstance from './AxiosInstance';
+import AxiosInstance from '../AxiosInstance';
 
 function CreateAgence() {
   const navigate = useNavigate();

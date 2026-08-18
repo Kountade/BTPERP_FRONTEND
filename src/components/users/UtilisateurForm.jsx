@@ -1,71 +1,174 @@
-// pages/utilisateurs/UtilisateurForm.jsx
+// src/components/users/UtilisateurForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  ArrowLeft, UserPlus, Mail, Lock, User, Shield,
-  Loader2, AlertCircle, CheckCircle, Phone,
-  Calendar, MapPin, Save, Edit, UserCog
+import { 
+  UserCircle, 
+  Mail, 
+  Phone, 
+  Building2, 
+  Shield, 
+  Save, 
+  X, 
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  Users,
+  HardHat,
+  Award,
+  Calendar,
+  MapPin,
+  CheckCircle,
+  XCircle,
+  Eye,
+  EyeOff,
+  Key
 } from 'lucide-react';
 import AxiosInstance from '../AxiosInstance';
 
-const UtilisateurForm = () => {
-  const { id } = useParams();
+function UtilisateurForm() {
   const navigate = useNavigate();
-  const [chargement, setChargement] = useState(false);
-  const [chargementInitial, setChargementInitial] = useState(false);
-  const [erreur, setErreur] = useState(null);
-  const [succes, setSucces] = useState(false);
-  
-  const estEdition = id && id !== 'ajouter' && id !== 'creer';
-  const userId = estEdition ? id : null;
-  
+  const { id } = useParams();
+  const isEdit = !!id;
+
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [message, setMessage] = useState(null);
+  const [messageType, setMessageType] = useState('info');
+  const [agences, setAgences] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    username: '',
-    role: 'vendeur',
     first_name: '',
     last_name: '',
-    phone_number: '',
+    phone: '',
     address: '',
-    birthday: '',
+    city: '',
+    country: 'France',
+    postal_code: '',
+    role_global: 'autre',
+    agence_id: '',
+    role_agence: '',
+    employee_id: '',
+    hire_date: '',
+    contract_type: '',
+    specialite_principale: '',
     is_active: true
   });
 
-  useEffect(() => {
-    if (estEdition && userId) {
-      chargerUtilisateur(userId);
-    }
-  }, [id]);
+  const ROLE_AGENCE_CHOICES = [
+    { value: 'directeur_agence', label: 'Directeur Agence' },
+    { value: 'chef_chantier', label: 'Chef Chantier' },
+    { value: 'conducteur_travaux', label: 'Conducteur Travaux' },
+    { value: 'technicien', label: 'Technicien' },
+    { value: 'gestionnaire_stock', label: 'Gestionnaire Stock' },
+    { value: 'commercial_btp', label: 'Commercial BTP' },
+    { value: 'comptable_btp', label: 'Comptable BTP' },
+    { value: 'responsable_hse', label: 'Responsable HSE' },
+    { value: 'responsable_rh', label: 'Responsable RH' },
+    { value: 'acheteur', label: 'Acheteur' },
+    { value: 'securite', label: 'Sécurité' },
+    { value: 'responsable_qualite', label: 'Responsable Qualité' },
+    { value: 'assistant_chantier', label: 'Assistant Chantier' }
+  ];
 
-  const chargerUtilisateur = async (userId) => {
-    setChargementInitial(true);
-    setErreur(null);
-    try {
-      const response = await AxiosInstance.get(`/users/${userId}/`);
-      const data = response.data;
-      setFormData({
-        email: data.email || '',
-        password: '',
-        username: data.username || '',
-        role: data.role || 'vendeur',
-        first_name: data.first_name || '',
-        last_name: data.last_name || '',
-        phone_number: data.phone_number || '',
-        address: data.address || '',
-        birthday: data.birthday || '',
-        is_active: data.is_active !== undefined ? data.is_active : true
-      });
-    } catch (err) {
-      console.error('Erreur:', err);
-      setErreur('Impossible de charger les données de l\'utilisateur');
-      if (err.response?.status === 404) {
-        setErreur('Utilisateur non trouvé');
+  const CONTRACT_TYPES = [
+    { value: 'cdi', label: 'CDI' },
+    { value: 'cdd', label: 'CDD' },
+    { value: 'interim', label: 'Intérim' },
+    { value: 'apprenti', label: 'Apprenti' },
+    { value: 'stagiaire', label: 'Stagiaire' }
+  ];
+
+  const SPECIALITE_CHOICES = [
+    { value: 'gros_oeuvre', label: 'Gros Œuvre' },
+    { value: 'second_oeuvre', label: 'Second Œuvre' },
+    { value: 'tp', label: 'Travaux Publics' },
+    { value: 'genie_civil', label: 'Génie Civil' },
+    { value: 'charpente', label: 'Charpente' },
+    { value: 'couverture', label: 'Couverture' },
+    { value: 'plomberie', label: 'Plomberie' },
+    { value: 'electricite', label: 'Électricité' },
+    { value: 'climatisation', label: 'Climatisation' },
+    { value: 'peinture', label: 'Peinture' },
+    { value: 'menuiserie', label: 'Menuiserie' }
+  ];
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadAgences = async () => {
+      try {
+        const token = localStorage.getItem('Token');
+        if (!token) return;
+        const response = await AxiosInstance.get('/agences/', {
+          headers: { Authorization: `Token ${token}` }
+        });
+        setAgences(response.data || []);
+      } catch (error) {
+        console.error('Erreur chargement agences:', error);
       }
-    } finally {
-      setChargementInitial(false);
+    };
+    loadAgences();
+  }, []);
+
+  useEffect(() => {
+    if (isEdit) {
+      const loadUser = async () => {
+        setLoadingData(true);
+        try {
+          const token = localStorage.getItem('Token');
+          if (!token) {
+            navigate('/login');
+            return;
+          }
+          const response = await AxiosInstance.get(`/users/${id}/`, {
+            headers: { Authorization: `Token ${token}` }
+          });
+          const user = response.data;
+          setFormData({
+            email: user.email || '',
+            password: '',
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            phone: user.phone || '',
+            address: user.address || '',
+            city: user.city || '',
+            country: user.country || 'France',
+            postal_code: user.postal_code || '',
+            role_global: user.role_global || 'autre',
+            agence_id: user.roles_agence?.[0]?.agence_id || '',
+            role_agence: user.roles_agence?.[0]?.role || '',
+            employee_id: user.employee_id || '',
+            hire_date: user.hire_date || '',
+            contract_type: user.contract_type || '',
+            specialite_principale: user.specialite_principale || '',
+            is_active: user.is_active !== undefined ? user.is_active : true
+          });
+        } catch (error) {
+          console.error('Erreur chargement:', error);
+          setMessageType('error');
+          setMessage('Erreur lors du chargement');
+        } finally {
+          setLoadingData(false);
+        }
+      };
+      loadUser();
+    } else {
+      setLoadingData(false);
     }
-  };
+  }, [id, isEdit, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -75,311 +178,506 @@ const UtilisateurForm = () => {
     }));
   };
 
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      password: '',
+      first_name: '',
+      last_name: '',
+      phone: '',
+      address: '',
+      city: '',
+      country: 'France',
+      postal_code: '',
+      role_global: 'autre',
+      agence_id: '',
+      role_agence: '',
+      employee_id: '',
+      hire_date: '',
+      contract_type: '',
+      specialite_principale: '',
+      is_active: true
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setChargement(true);
-    setErreur(null);
-    setSucces(false);
+    setLoading(true);
+    setMessage(null);
 
     try {
+      const token = localStorage.getItem('Token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
       const dataToSend = { ...formData };
       if (!dataToSend.password) {
         delete dataToSend.password;
       }
-      Object.keys(dataToSend).forEach(key => {
-        if (dataToSend[key] === '' || dataToSend[key] === null) {
-          delete dataToSend[key];
-        }
-      });
 
-      if (estEdition && userId) {
-        await AxiosInstance.patch(`/users/${userId}/`, dataToSend);
-        setSucces(true);
-        setTimeout(() => {
-          navigate(`/utilisateurs/${userId}`);
-        }, 1500);
+      let response;
+      if (isEdit) {
+        response = await AxiosInstance.put(`/users/${id}/`, dataToSend, {
+          headers: { Authorization: `Token ${token}` }
+        });
       } else {
-        await AxiosInstance.post('/users/', dataToSend);
-        setSucces(true);
-        setTimeout(() => {
-          navigate('/utilisateurs');
-        }, 1500);
+        response = await AxiosInstance.post('/register/', dataToSend, {
+          headers: { Authorization: `Token ${token}` }
+        });
       }
-    } catch (err) {
-      console.error('Erreur:', err);
-      if (err.response?.data) {
-        const errors = Object.values(err.response.data).flat();
-        setErreur(errors.join(', '));
+
+      if (response.data && response.data.offline) {
+        setMessageType('warning');
+        setMessage('Sauvegardé localement - Sync auto à la reconnexion');
+        if (!isEdit) resetForm();
       } else {
-        setErreur(err.response?.data?.error || 'Erreur lors de l\'enregistrement');
+        setMessageType('success');
+        setMessage(isEdit ? 'Utilisateur modifié avec succès' : 'Utilisateur créé avec succès');
+        if (!isEdit) resetForm();
+        setTimeout(() => navigate('/utilisateurs'), 1500);
       }
-    } finally {
-      setChargement(false);
+
+    } catch (error) {
+      console.error('Erreur:', error);
+
+      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || !navigator.onLine) {
+        setMessageType('warning');
+        setMessage('Sauvegardé localement - Sync auto à la reconnexion');
+        if (!isEdit) resetForm();
+        setLoading(false);
+        return;
+      }
+
+      if (error.response?.status === 401) {
+        setMessageType('error');
+        setMessage('Session expirée');
+        setTimeout(() => navigate('/login'), 1500);
+      } else if (error.response?.status === 400) {
+        setMessageType('error');
+        const errors = error.response.data;
+        const messages = Object.keys(errors).flatMap(key => 
+          Array.isArray(errors[key]) ? errors[key].map(e => `${key}: ${e}`) : `${key}: ${errors[key]}`
+        );
+        setMessage(messages.join(', '));
+      } else if (error.response?.status === 403) {
+        setMessageType('error');
+        setMessage('Permission refusée');
+      } else if (error.response?.status === 500) {
+        setMessageType('error');
+        setMessage('Erreur serveur');
+      } else {
+        setMessageType('error');
+        setMessage(error.message || 'Erreur inconnue');
+      }
     }
+    setLoading(false);
   };
 
-  if (chargementInitial) {
+  if (loadingData) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+          <p className="mt-4 text-base-content/60">Chargement...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <button 
-          onClick={() => navigate(estEdition && userId ? `/utilisateurs/${userId}` : '/utilisateurs')} 
-          className="btn btn-ghost btn-circle"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          {estEdition ? (
-            <>
-              <Edit className="w-8 h-8 text-primary" />
-              Modifier l'utilisateur
-            </>
-          ) : (
-            <>
-              <UserPlus className="w-8 h-8 text-primary" />
-              Nouvel utilisateur
-            </>
-          )}
-        </h1>
-      </div>
-
-      {succes && (
-        <div className="alert alert-success mb-6 shadow-lg">
-          <CheckCircle className="w-6 h-6" />
-          <span>
-            {estEdition 
-              ? 'Utilisateur modifié avec succès !' 
-              : 'Utilisateur créé avec succès !'}
-          </span>
+    <div className="h-[calc(100vh-88px)] overflow-hidden bg-base-200">
+      <div className="h-full w-full bg-base-100 p-6 overflow-y-auto">
+        
+        {/* En-tête - IDENTIQUE À CreateAgence */}
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-base-200 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <UserCircle className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold">
+              {isEdit ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}
+            </h2>
+          </div>
+          
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className={`badge ${isOnline ? 'badge-success' : 'badge-error'} gap-1.5 px-3 py-2.5`}>
+              {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              {isOnline ? 'En ligne' : 'Hors ligne'}
+            </div>
+            <button 
+              type="button" 
+              className="btn btn-ghost btn-sm gap-1"
+              onClick={() => navigate('/utilisateurs')}
+            >
+              <X className="w-4 h-4" />
+              Fermer
+            </button>
+          </div>
         </div>
-      )}
 
-      {erreur && (
-        <div className="alert alert-error mb-6 shadow-lg">
-          <AlertCircle className="w-6 h-6" />
-          <span>{erreur}</span>
-        </div>
-      )}
+        {/* Message */}
+        {message && (
+          <div className={`alert-offline ${messageType} mb-3 py-2 px-3`}>
+            {message}
+          </div>
+        )}
 
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email *
-                  </span>
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  className="input input-bordered"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required={!estEdition}
-                  disabled={estEdition}
-                  placeholder="exemple@email.com"
-                />
-                {estEdition && (
-                  <span className="text-xs text-base-content/40 mt-1">
-                    L'email ne peut pas être modifié
-                  </span>
-                )}
-              </div>
+        {/* Avertissement hors ligne */}
+        {!isOnline && (
+          <div className="alert alert-warning mb-3 py-2 shadow-sm">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Hors ligne - Sauvegarde locale automatique</span>
+          </div>
+        )}
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    {estEdition ? 'Nouveau mot de passe' : 'Mot de passe *'}
-                  </span>
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  className="input input-bordered"
+        {/* Formulaire - IDENTIQUE À CreateAgence */}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Mail className="w-4 h-4 inline mr-1.5" />
+                Email <span className="text-error">*</span>
+              </label>
+              <input 
+                name="email" 
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Email"
+                required 
+                disabled={isEdit}
+              />
+            </div>
+
+            {/* Mot de passe */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Key className="w-4 h-4 inline mr-1.5" />
+                Mot de passe {!isEdit && <span className="text-error">*</span>}
+              </label>
+              <div className="relative">
+                <input 
+                  name="password" 
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleChange}
-                  required={!estEdition}
-                  minLength="6"
-                  placeholder={estEdition ? 'Laisser vide pour conserver' : '••••••••'}
+                  className="input input-bordered w-full pr-10" 
+                  placeholder={isEdit ? 'Laisser vide pour conserver' : 'Mot de passe'}
+                  required={!isEdit}
+                  minLength={6}
                 />
-                {estEdition && (
-                  <span className="text-xs text-base-content/40 mt-1">
-                    Laisser vide pour conserver le mot de passe actuel
-                  </span>
-                )}
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Nom d'utilisateur
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  name="username"
-                  className="input input-bordered"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="pseudo"
-                />
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Rôle *
-                  </span>
-                </label>
-                <select
-                  name="role"
-                  className="select select-bordered"
-                  value={formData.role}
-                  onChange={handleChange}
-                  required
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  <option value="vendeur">Vendeur</option>
-                  <option value="admin">Administrateur</option>
-                </select>
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium">Prénom</span>
-                </label>
-                <input
-                  type="text"
-                  name="first_name"
-                  className="input input-bordered"
-                  value={formData.first_name}
-                  onChange={handleChange}
-                  placeholder="Prénom"
-                />
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium">Nom</span>
-                </label>
-                <input
-                  type="text"
-                  name="last_name"
-                  className="input input-bordered"
-                  value={formData.last_name}
-                  onChange={handleChange}
-                  placeholder="Nom"
-                />
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    Téléphone
-                  </span>
-                </label>
-                <input
-                  type="tel"
-                  name="phone_number"
-                  className="input input-bordered"
-                  value={formData.phone_number}
-                  onChange={handleChange}
-                  placeholder="+221 XX XXX XX XX"
-                />
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Date de naissance
-                  </span>
-                </label>
-                <input
-                  type="date"
-                  name="birthday"
-                  className="input input-bordered"
-                  value={formData.birthday}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-control md:col-span-2">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Adresse
-                  </span>
-                </label>
-                <textarea
-                  name="address"
-                  className="textarea textarea-bordered"
-                  value={formData.address}
-                  onChange={handleChange}
-                  rows="2"
-                  placeholder="Adresse complète"
-                />
-              </div>
-
-              <div className="form-control md:col-span-2">
-                <label className="label cursor-pointer justify-start gap-4">
-                  <span className="label-text font-medium">Compte actif</span>
-                  <input
-                    type="checkbox"
-                    name="is_active"
-                    className="toggle toggle-primary"
-                    checked={formData.is_active}
-                    onChange={handleChange}
-                  />
-                </label>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => navigate(estEdition && userId ? `/utilisateurs/${userId}` : '/utilisateurs')}
-                className="btn flex-1"
-                disabled={chargement}
+            {/* Statut */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <CheckCircle className="w-4 h-4 inline mr-1.5" />
+                Statut
+              </label>
+              <select 
+                name="is_active" 
+                value={formData.is_active ? 'active' : 'inactive'}
+                onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.value === 'active' }))}
+                className="select select-bordered w-full"
               >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary flex-1 gap-2"
-                disabled={chargement}
-              >
-                {chargement ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {estEdition ? 'Modification...' : 'Création...'}
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-5 h-5" />
-                    {estEdition ? 'Modifier' : 'Créer'}
-                  </>
-                )}
-              </button>
+                <option value="active">Actif</option>
+                <option value="inactive">Inactif</option>
+              </select>
             </div>
-          </form>
-        </div>
+
+            {/* Prénom */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Prénom
+              </label>
+              <input 
+                name="first_name" 
+                value={formData.first_name}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Prénom"
+              />
+            </div>
+
+            {/* Nom */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Nom
+              </label>
+              <input 
+                name="last_name" 
+                value={formData.last_name}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Nom"
+              />
+            </div>
+
+            {/* Téléphone */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Phone className="w-4 h-4 inline mr-1.5" />
+                Téléphone
+              </label>
+              <input 
+                name="phone" 
+                value={formData.phone}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Téléphone"
+              />
+            </div>
+
+            {/* Rôle Global */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Shield className="w-4 h-4 inline mr-1.5" />
+                Rôle Global
+              </label>
+              <select 
+                name="role_global" 
+                value={formData.role_global}
+                onChange={handleChange}
+                className="select select-bordered w-full"
+              >
+                <option value="autre">Autre</option>
+                <option value="pdg">PDG</option>
+              </select>
+            </div>
+
+            {/* Agence */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Building2 className="w-4 h-4 inline mr-1.5" />
+                Agence
+              </label>
+              <select 
+                name="agence_id" 
+                value={formData.agence_id}
+                onChange={handleChange}
+                className="select select-bordered w-full"
+                disabled={formData.role_global === 'pdg'}
+              >
+                <option value="">Sélectionner une agence</option>
+                {agences.map(agence => (
+                  <option key={agence.id} value={agence.id}>
+                    {agence.nom} ({agence.ville})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Rôle Agence */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Users className="w-4 h-4 inline mr-1.5" />
+                Rôle dans l'agence
+              </label>
+              <select 
+                name="role_agence" 
+                value={formData.role_agence}
+                onChange={handleChange}
+                className="select select-bordered w-full"
+                disabled={formData.role_global === 'pdg' || !formData.agence_id}
+              >
+                <option value="">Sélectionner un rôle</option>
+                {ROLE_AGENCE_CHOICES.map(role => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Matricule */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Award className="w-4 h-4 inline mr-1.5" />
+                Matricule
+              </label>
+              <input 
+                name="employee_id" 
+                value={formData.employee_id}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Matricule"
+              />
+            </div>
+
+            {/* Type de contrat */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Type de contrat
+              </label>
+              <select 
+                name="contract_type" 
+                value={formData.contract_type}
+                onChange={handleChange}
+                className="select select-bordered w-full"
+              >
+                <option value="">Sélectionner</option>
+                {CONTRACT_TYPES.map(contract => (
+                  <option key={contract.value} value={contract.value}>
+                    {contract.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date d'embauche */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <Calendar className="w-4 h-4 inline mr-1.5" />
+                Date d'embauche
+              </label>
+              <input 
+                name="hire_date" 
+                type="date"
+                value={formData.hire_date}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+              />
+            </div>
+
+            {/* Spécialité */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                <HardHat className="w-4 h-4 inline mr-1.5" />
+                Spécialité
+              </label>
+              <select 
+                name="specialite_principale" 
+                value={formData.specialite_principale}
+                onChange={handleChange}
+                className="select select-bordered w-full"
+              >
+                <option value="">Sélectionner</option>
+                {SPECIALITE_CHOICES.map(spec => (
+                  <option key={spec.value} value={spec.value}>
+                    {spec.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Adresse - colonne entière */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">
+                <MapPin className="w-4 h-4 inline mr-1.5" />
+                Adresse
+              </label>
+              <input 
+                name="address" 
+                value={formData.address}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Adresse"
+              />
+            </div>
+
+            {/* Ville */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Ville
+              </label>
+              <input 
+                name="city" 
+                value={formData.city}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Ville"
+              />
+            </div>
+
+            {/* Code Postal */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Code Postal
+              </label>
+              <input 
+                name="postal_code" 
+                value={formData.postal_code}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Code Postal"
+              />
+            </div>
+
+            {/* Pays */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Pays
+              </label>
+              <input 
+                name="country" 
+                value={formData.country}
+                onChange={handleChange}
+                className="input input-bordered w-full" 
+                placeholder="Pays"
+              />
+            </div>
+          </div>
+          
+          {/* Boutons - IDENTIQUE À CreateAgence */}
+          <div className="flex flex-wrap gap-3 pt-4 border-t border-base-200">
+            <button 
+              type="submit" 
+              className="btn btn-primary flex-1 min-w-[120px] gap-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {loading ? 'En cours...' : (isEdit ? 'Modifier' : 'Créer')}
+            </button>
+            
+            <button 
+              type="button" 
+              className="btn btn-ghost gap-2"
+              onClick={() => navigate('/utilisateurs')}
+            >
+              <X className="w-4 h-4" />
+              Annuler
+            </button>
+            
+            {!isEdit && (
+              <button 
+                type="button" 
+                className="btn btn-ghost gap-2"
+                onClick={resetForm}
+                disabled={loading}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Réinitialiser
+              </button>
+            )}
+          </div>
+          
+          {/* Info offline */}
+          {!isOnline && (
+            <div className="text-center text-xs text-base-content/40 mt-1">
+              Sauvegarde locale - Synchronisation automatique à la reconnexion
+            </div>
+          )}
+        </form>
       </div>
     </div>
   );
-};
+}
 
 export default UtilisateurForm;

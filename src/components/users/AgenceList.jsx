@@ -47,7 +47,7 @@ import {
   X as XIcon
 } from 'lucide-react';
 
-import AxiosInstance from './AxiosInstance';
+import AxiosInstance from '../AxiosInstance';
 
 function AgenceList() {
   const navigate = useNavigate();
