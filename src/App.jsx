@@ -28,6 +28,9 @@ import PostesList from './components/grh/PostesList';
 import PosteForm from './components/grh/PosteForm';
 import PosteDetails from './components/grh/PosteDetails';
 
+import EmployesList from './components/grh/EmployesList';
+import EmployeForm from './components/grh/EmployeForm';
+import EmployeDetails from './components/grh/EmployeDetails';
 
 
 function App() {
@@ -72,26 +75,30 @@ function App() {
                 <Route path="/utilisateurs/edit/:id" element={<UtilisateurForm />} />
                 <Route path="/utilisateurs/:id" element={<UtilisateurDetails />} />
 
-                {/* ==================== FINANCES ==================== 
-                <Route path="/finances-dashboard" element={<FinancesDashboard />} />
-                */}
-
+             
+ {/* ==================== LIVRAISONS ==================== */}
               
                 <Route path="/services" element={<ServicesList />} />
                 <Route path="/services/create" element={<ServiceForm />} />
                 <Route path="/services/edit/:id" element={<ServiceForm />} />
                 <Route path="/services/:id" element={<ServiceDetails />} />   
-
+ {/* ==================== LIVRAISONS ==================== 
+                <Route path="/livraisons" element={<DeliveriesList />} />
+                <Route path="/livraisons/:id" element={<DeliveryDetails />} />
+                */}
                 <Route path="/postes" element={<PostesList />} />
                 <Route path="/postes/create" element={<PosteForm />} />
                 <Route path="/postes/edit/:id" element={<PosteForm />} />
                 <Route path="/postes/:id" element={<PosteDetails />} />    
                   
+                 {/* EMPLOYÉS */}
+                <Route path="/employes" element={<EmployesList />} />
+                 <Route path="/employes/create" element={<EmployeForm />} />
+                <Route path="/employes/edit/:id" element={<EmployeForm />} />
+                 <Route path="/employes/:id" element={<EmployeDetails />} /> 
+                  
 
-                {/* ==================== LIVRAISONS ==================== 
-                <Route path="/livraisons" element={<DeliveriesList />} />
-                <Route path="/livraisons/:id" element={<DeliveryDetails />} />
-                */}
+          
 
                 {/* ==================== AUDIT ====================
                 <Route path="/audit" element={<AuditLog />} />
