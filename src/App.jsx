@@ -36,6 +36,11 @@ import CompetencesList from './components/grh/CompetencesList';
 import CompetenceForm from './components/grh/CompetenceForm';
 import CompetenceDetails from './components/grh/CompetenceDetails';
 
+import ContratList from './components/grh/ContratList';
+import ContratForm from './components/grh/ContratForm';
+import ContratDetail from './components/grh/ContratDetail';
+import ContratPdf from './components/grh/ContratPdf';
+
 
 function App() {
   const location = useLocation();
@@ -110,6 +115,20 @@ function App() {
 
           
 
+                 // Dans les routes protégées
+                <Route path="/competences" element={<CompetencesList />} />
+                <Route path="/competences/create" element={<CompetenceForm />} />
+                <Route path="/competences/edit/:id" element={<CompetenceForm />} />
+                <Route path="/competences/:id" element={<CompetenceDetails />} />
+
+// Dans les routes protégées
+<Route path="/contrats" element={<ContratList />} />
+<Route path="/contrats/create" element={<ContratForm />} />
+<Route path="/contrats/edit/:id" element={<ContratForm />} />
+<Route path="/contrats/:id" element={<ContratDetail />} />
+<Route path="/contrats/pdf/:id" element={<ContratPdf />} />
+
+                
                 {/* ==================== AUDIT ====================
                 <Route path="/audit" element={<AuditLog />} />
                 */}

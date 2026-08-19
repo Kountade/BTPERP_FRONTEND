@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - Version BTP COMPLÈTE AVEC OFFLINE & MENUS RH
+// src/components/Navbar.jsx - Version BTP COMPLÈTE AVEC OFFLINE & MENUS RH + CONTRATS
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -157,6 +157,9 @@ import {
   Users as UsersIcon,
   UserCog as UserCogIcon,
   FileClock,
+  // ✅ ICÔNE CONTRAT
+  FileText as ContratIcon,
+  FileCheck as ContratCheckIcon,
 } from 'lucide-react';
 
 import logo from '../assets/logo.svg';
@@ -245,6 +248,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
   const [dpaeEnAttente, setDpaeEnAttente] = useState(0);
   const [pointagesAJour, setPointagesAJour] = useState(0);
   const [planningActif, setPlanningActif] = useState(0);
+  const [contratsActifs, setContratsActifs] = useState(0);
 
   // ============================================================
   // RÉCUPÉRATION UTILISATEUR
@@ -658,6 +662,10 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
 
             const planningRes = await AxiosInstance.get(`/planning/actif/${params}`).catch(() => ({ data: [] }));
             setPlanningActif(planningRes.data?.length || 0);
+
+            // ✅ CHARGEMENT DES CONTRATS ACTIFS
+            const contratsRes = await AxiosInstance.get(`/contrats/?statut=actif${params}`).catch(() => ({ data: [] }));
+            setContratsActifs(contratsRes.data?.length || 0);
           }
         }
         
@@ -708,7 +716,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
   };
 
   // ============================================================
-  // ✅ MENU ERP BTP - AVEC MENUS RH COMPLETS
+  // ✅ MENU ERP BTP - AVEC MENUS RH COMPLETS + CONTRATS
   // ============================================================
 
   const menuSections = [
@@ -761,7 +769,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
         { id: 'carnet-entretien', text: 'Entretien', icon: BookOpen, path: '/carnet-entretien', permission: canViewEngins() }
       ]
     },
-    // ✅ SECTION RESSOURCES HUMAINES - COMPLÈTE
+    // ✅ SECTION RESSOURCES HUMAINES - COMPLÈTE AVEC CONTRATS
     {
       name: 'RESSOURCES HUMAINES',
       icon: Users,
@@ -769,6 +777,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
       items: [
         // === ADMINISTRATION RH ===
         { id: 'employes', text: 'Employés', icon: Users, path: '/employes', permission: canViewRH() },
+        { id: 'contrats', text: 'Contrats', icon: ContratIcon, path: '/contrats', permission: canViewRH(), badge: contratsActifs > 0 ? contratsActifs : 0 },
         { id: 'services', text: 'Services', icon: ServiceIcon, path: '/services', permission: canViewRH() },
         { id: 'postes', text: 'Postes', icon: BriefcaseIcon, path: '/postes', permission: canViewRH() },
         { id: 'competences', text: 'Compétences', icon: BadgeCheck, path: '/competences', permission: canViewRH() },
