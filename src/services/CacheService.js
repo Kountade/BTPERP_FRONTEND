@@ -20,6 +20,12 @@ class CacheService {
             AGENCES_LAST_UPDATE: 'agences_last_update',
             ROLES: 'roles',
             USERS: 'users',
+            EMPLOYES: 'employes_cache',        // ✅ NOUVEAU
+            CONTRATS: 'contrats_cache',         // ✅ NOUVEAU
+            SERVICES: 'services_cache',         // ✅ NOUVEAU
+            POSTES: 'postes_cache',             // ✅ NOUVEAU
+            PROJETS: 'projets_cache',           // ✅ NOUVEAU
+            COMPETENCES: 'competences_cache',   // ✅ NOUVEAU
             PENDING_OPERATIONS: 'pendingOperations',
         };
         this.initializePendingOperations();
@@ -41,7 +47,6 @@ class CacheService {
         window.addEventListener('online', () => {
             this.isOnline = true;
             console.log('🔗 Connexion rétablie - Synchronisation automatique');
-            // ✅ DÉCLENCHER LA SYNCHRONISATION AUTO
             this.syncPendingData();
         });
         window.addEventListener('offline', () => {
@@ -64,7 +69,6 @@ class CacheService {
 
     // ✅ RÉCUPÉRER LES OPÉRATIONS
     async getPendingOperations() {
-        // Recharger depuis le DB pour être sûr
         const pending = await this.db.getItem(this.cacheKeys.PENDING_OPERATIONS);
         this.pendingOperations = pending || [];
         return this.pendingOperations;
@@ -82,7 +86,11 @@ class CacheService {
         console.log(`🗑️ Opération ${id} supprimée`);
     }
 
-    // ✅ RÉCUPÉRER LES AGENCES EN CACHE
+    // ============================================================
+    // ✅ MÉTHODES DE CACHE PAR CATÉGORIE
+    // ============================================================
+
+    // ---- AGENCES ----
     async getCachedAgences() {
         try {
             const agences = await this.db.getItem(this.cacheKeys.AGENCES);
@@ -93,7 +101,6 @@ class CacheService {
         }
     }
 
-    // ✅ METTRE EN CACHE LES AGENCES
     async cacheAgences(agences) {
         try {
             await this.db.setItem(this.cacheKeys.AGENCES, agences);
@@ -104,10 +111,150 @@ class CacheService {
         }
     }
 
+    // ---- EMPLOYÉS ----
+    async getCachedEmployes() {
+        try {
+            const employes = await this.db.getItem(this.cacheKeys.EMPLOYES);
+            return employes || [];
+        } catch (error) {
+            console.error('Erreur récupération employés cache:', error);
+            return [];
+        }
+    }
+
+    async cacheEmployes(employes) {
+        try {
+            await this.db.setItem(this.cacheKeys.EMPLOYES, employes);
+            console.log(`👤 ${employes.length} employés mis en cache`);
+        } catch (error) {
+            console.error('Erreur cache employés:', error);
+        }
+    }
+
+    // ---- CONTRATS ----
+    async getCachedContrats() {
+        try {
+            const contrats = await this.db.getItem(this.cacheKeys.CONTRATS);
+            return contrats || [];
+        } catch (error) {
+            console.error('Erreur récupération contrats cache:', error);
+            return [];
+        }
+    }
+
+    async cacheContrats(contrats) {
+        try {
+            await this.db.setItem(this.cacheKeys.CONTRATS, contrats);
+            console.log(`📄 ${contrats.length} contrats mis en cache`);
+        } catch (error) {
+            console.error('Erreur cache contrats:', error);
+        }
+    }
+
+    // ---- SERVICES ----
+    async getCachedServices() {
+        try {
+            const services = await this.db.getItem(this.cacheKeys.SERVICES);
+            return services || [];
+        } catch (error) {
+            console.error('Erreur récupération services cache:', error);
+            return [];
+        }
+    }
+
+    async cacheServices(services) {
+        try {
+            await this.db.setItem(this.cacheKeys.SERVICES, services);
+            console.log(`🏢 ${services.length} services mis en cache`);
+        } catch (error) {
+            console.error('Erreur cache services:', error);
+        }
+    }
+
+    // ---- POSTES ----
+    async getCachedPostes() {
+        try {
+            const postes = await this.db.getItem(this.cacheKeys.POSTES);
+            return postes || [];
+        } catch (error) {
+            console.error('Erreur récupération postes cache:', error);
+            return [];
+        }
+    }
+
+    async cachePostes(postes) {
+        try {
+            await this.db.setItem(this.cacheKeys.POSTES, postes);
+            console.log(`💼 ${postes.length} postes mis en cache`);
+        } catch (error) {
+            console.error('Erreur cache postes:', error);
+        }
+    }
+
+    // ---- PROJETS ----
+    async getCachedProjets() {
+        try {
+            const projets = await this.db.getItem(this.cacheKeys.PROJETS);
+            return projets || [];
+        } catch (error) {
+            console.error('Erreur récupération projets cache:', error);
+            return [];
+        }
+    }
+
+    async cacheProjets(projets) {
+        try {
+            await this.db.setItem(this.cacheKeys.PROJETS, projets);
+            console.log(`🏗️ ${projets.length} projets mis en cache`);
+        } catch (error) {
+            console.error('Erreur cache projets:', error);
+        }
+    }
+
+    // ---- COMPÉTENCES ----
+    async getCachedCompetences() {
+        try {
+            const competences = await this.db.getItem(this.cacheKeys.COMPETENCES);
+            return competences || [];
+        } catch (error) {
+            console.error('Erreur récupération compétences cache:', error);
+            return [];
+        }
+    }
+
+    async cacheCompetences(competences) {
+        try {
+            await this.db.setItem(this.cacheKeys.COMPETENCES, competences);
+            console.log(`🎯 ${competences.length} compétences mises en cache`);
+        } catch (error) {
+            console.error('Erreur cache compétences:', error);
+        }
+    }
+
+    // ---- UTILISATEURS ----
+    async getCachedUsers() {
+        try {
+            const users = await this.db.getItem(this.cacheKeys.USERS);
+            return users || [];
+        } catch (error) {
+            console.error('Erreur récupération utilisateurs cache:', error);
+            return [];
+        }
+    }
+
+    async cacheUsers(users) {
+        try {
+            await this.db.setItem(this.cacheKeys.USERS, users);
+            console.log(`👤 ${users.length} utilisateurs mis en cache`);
+        } catch (error) {
+            console.error('Erreur cache utilisateurs:', error);
+        }
+    }
+
     // ✅ SAUVEGARDER UN UTILISATEUR LOCALEMENT
     async saveUserLocally(userData) {
         try {
-            let users = await this.db.getItem(this.cacheKeys.USERS) || [];
+            let users = await this.getCachedUsers();
             const existingIndex = users.findIndex(u => u.id === userData.id || u._id === userData._id);
             
             if (existingIndex !== -1) {
@@ -121,7 +268,7 @@ class CacheService {
                 });
             }
             
-            await this.db.setItem(this.cacheKeys.USERS, users);
+            await this.cacheUsers(users);
             console.log(`💾 Utilisateur sauvegardé localement: ${userData.email}`);
             return true;
         } catch (error) {
@@ -130,14 +277,24 @@ class CacheService {
         }
     }
 
-    // ✅ SYNCHRONISER LES DONNÉES PENDING (NOUVEAU)
+    // ✅ RÉCUPÉRER UN EMPLOYÉ PAR ID (pour les formulaires)
+    async getCachedUserById(id) {
+        try {
+            const employes = await this.getCachedEmployes();
+            return employes.find(e => e.id === parseInt(id)) || null;
+        } catch (error) {
+            console.error('Erreur récupération employé par ID:', error);
+            return null;
+        }
+    }
+
+    // ✅ SYNCHRONISER LES DONNÉES PENDING
     async syncPendingData() {
         if (!this.isOnline) {
             console.log('📡 Hors ligne - Synchronisation impossible');
             return { success: false, message: 'Hors ligne' };
         }
 
-        // Recharger les opérations
         await this.getPendingOperations();
         
         if (this.pendingOperations.length === 0) {
@@ -160,7 +317,6 @@ class CacheService {
                 let url = '';
                 let method = '';
                 
-                // ✅ Déterminer l'URL et la méthode selon le type d'opération
                 switch (operation.type) {
                     case 'CREATE_USER':
                         url = '/register/';
@@ -176,6 +332,38 @@ class CacheService {
                         break;
                     case 'UPDATE_EMPLOYE':
                         url = `/employes/${operation.userId}/`;
+                        method = 'PUT';
+                        break;
+                    case 'CREATE_CONTRAT':
+                        url = '/contrats/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_CONTRAT':
+                        url = `/contrats/${operation.contratId}/`;
+                        method = 'PUT';
+                        break;
+                    case 'CREATE_POINTAGE':
+                        url = '/pointages/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_POINTAGE':
+                        url = `/pointages/${operation.pointageId}/`;
+                        method = 'PUT';
+                        break;
+                    case 'CREATE_HEURE_TRAVAIL':
+                        url = '/heures-travail/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_HEURE_TRAVAIL':
+                        url = `/heures-travail/${operation.heureId}/`;
+                        method = 'PUT';
+                        break;
+                    case 'CREATE_ABSENCE':
+                        url = '/absences/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_ABSENCE':
+                        url = `/absences/${operation.absenceId}/`;
                         method = 'PUT';
                         break;
                     default:
@@ -220,7 +408,6 @@ class CacheService {
                     error: error.message 
                 });
                 
-                // Si 401, token invalide
                 if (error.response?.status === 401) {
                     console.log('🔒 Token invalide - Déconnexion');
                     localStorage.removeItem('Token');
@@ -231,7 +418,6 @@ class CacheService {
             }
         }
 
-        // Mettre à jour le compteur
         const remaining = await this.getPendingCount();
         const successCount = results.filter(r => r.success).length;
         console.log(`📊 Synchronisation terminée: ${successCount} succès, ${remaining} restant(s)`);
@@ -253,6 +439,29 @@ class CacheService {
         } catch (error) {
             console.error('Erreur vidage cache:', error);
             return false;
+        }
+    }
+
+    // ✅ SUPPRIMER UNE ENTRÉE SPÉCIFIQUE DU CACHE
+    async removeCacheItem(key) {
+        try {
+            await this.db.removeItem(key);
+            console.log(`🗑️ Cache supprimé: ${key}`);
+            return true;
+        } catch (error) {
+            console.error(`Erreur suppression cache ${key}:`, error);
+            return false;
+        }
+    }
+
+    // ✅ RÉCUPÉRER TOUTES LES CLÉS DU CACHE
+    async getCacheKeys() {
+        try {
+            const keys = await this.db.keys();
+            return keys;
+        } catch (error) {
+            console.error('Erreur récupération clés cache:', error);
+            return [];
         }
     }
 }

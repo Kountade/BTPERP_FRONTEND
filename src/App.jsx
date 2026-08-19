@@ -42,6 +42,13 @@ import ContratDetail from './components/grh/ContratDetail';
 import ContratPdf from './components/grh/ContratPdf';
 
 
+import HeureTravailList from './components/grh/HeureTravailList';
+import HeureTravailForm from './components/grh/HeureTravailForm';
+
+import AbsenceList from './components/grh/AbsenceList';
+import AbsenceForm from './components/grh/AbsenceForm';
+import AbsenceDetail from './components/grh/AbsenceDetail';
+
 function App() {
   const location = useLocation();
   
@@ -115,12 +122,7 @@ function App() {
 
           
 
-                 // Dans les routes protégées
-                <Route path="/competences" element={<CompetencesList />} />
-                <Route path="/competences/create" element={<CompetenceForm />} />
-                <Route path="/competences/edit/:id" element={<CompetenceForm />} />
-                <Route path="/competences/:id" element={<CompetenceDetails />} />
-
+           
 // Dans les routes protégées
 <Route path="/contrats" element={<ContratList />} />
 <Route path="/contrats/create" element={<ContratForm />} />
@@ -128,7 +130,18 @@ function App() {
 <Route path="/contrats/:id" element={<ContratDetail />} />
 <Route path="/contrats/pdf/:id" element={<ContratPdf />} />
 
-                
+
+
+
+<Route path="/heures-travail" element={<HeureTravailList />} />
+<Route path="/heures-travail/create" element={<HeureTravailForm />} />
+<Route path="/heures-travail/edit/:id" element={<HeureTravailForm />} />
+
+
+                <Route path="/absences" element={<AbsenceList />} />
+<Route path="/absences/create" element={<AbsenceForm />} />
+<Route path="/absences/edit/:id" element={<AbsenceForm />} />
+<Route path="/absences/:id" element={<AbsenceDetail />} />
                 {/* ==================== AUDIT ====================
                 <Route path="/audit" element={<AuditLog />} />
                 */}
