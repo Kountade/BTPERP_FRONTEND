@@ -32,6 +32,10 @@ import EmployesList from './components/grh/EmployesList';
 import EmployeForm from './components/grh/EmployeForm';
 import EmployeDetails from './components/grh/EmployeDetails';
 
+import CompetencesList from './components/grh/CompetencesList';
+import CompetenceForm from './components/grh/CompetenceForm';
+import CompetenceDetails from './components/grh/CompetenceDetails';
+
 
 function App() {
   const location = useLocation();
@@ -96,7 +100,13 @@ function App() {
                  <Route path="/employes/create" element={<EmployeForm />} />
                 <Route path="/employes/edit/:id" element={<EmployeForm />} />
                  <Route path="/employes/:id" element={<EmployeDetails />} /> 
-                  
+
+
+                 // Dans les routes protégées
+                <Route path="/competences" element={<CompetencesList />} />
+                <Route path="/competences/create" element={<CompetenceForm />} />
+                <Route path="/competences/edit/:id" element={<CompetenceForm />} />
+                <Route path="/competences/:id" element={<CompetenceDetails />} />
 
           
 
