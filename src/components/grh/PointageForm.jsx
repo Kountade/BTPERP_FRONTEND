@@ -1,5 +1,5 @@
 // src/components/rh/PointageForm.jsx
-// Formulaire de pointage - Avec synchronisation fonctionnelle
+// Formulaire de pointage - Version avec synchronisation via syncService
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import AxiosInstance from '../AxiosInstance';
 import cacheService from '../../services/CacheService';
+// ✅ IMPORTER syncService
+import { saveOffline } from '../../services/syncService';
 
 function PointageForm() {
   const navigate = useNavigate();
@@ -22,7 +24,6 @@ function PointageForm() {
   const [message, setMessage] = useState(null);
   const [messageType, setMessageType] = useState('info');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isSyncing, setIsSyncing] = useState(false);
   
   const [employes, setEmployes] = useState([]);
   const [projets, setProjets] = useState([]);
@@ -45,130 +46,11 @@ function PointageForm() {
     { value: 'heure_sup', label: 'Heure supplémentaire' }
   ];
 
-  // ✅ SYNC DES DONNÉES PENDING
-  const syncPendingData = async () => {
-    if (!isOnline) {
-      console.log('📡 Hors ligne - Synchronisation impossible');
-      return;
-    }
-
-    if (isSyncing) {
-      console.log('⏳ Synchronisation déjà en cours');
-      return;
-    }
-
-    setIsSyncing(true);
-    console.log('🔄 Début synchronisation des pointages...');
-
-    try {
-      // Récupérer les opérations en attente
-      const pendingOps = await cacheService.getPendingOperations();
-      
-      if (pendingOps.length === 0) {
-        console.log('✅ Aucune opération en attente');
-        setIsSyncing(false);
-        return;
-      }
-
-      console.log(`📝 ${pendingOps.length} opérations à synchroniser`);
-      
-      const token = localStorage.getItem('Token');
-      if (!token) {
-        console.log('❌ Token manquant');
-        setIsSyncing(false);
-        return;
-      }
-
-      let synced = 0;
-      let failed = 0;
-
-      for (const op of pendingOps) {
-        try {
-          // Ne traiter que les opérations liées aux pointages
-          if (!op.type || !['CREATE_POINTAGE', 'UPDATE_POINTAGE'].includes(op.type)) {
-            continue;
-          }
-
-          console.log(`📤 Synchronisation: ${op.type}`);
-          
-          let url = '';
-          let method = '';
-          
-          // Préparer les données
-          const preparedData = {
-            employe: parseInt(op.data.employe),
-            contrat: op.data.contrat ? parseInt(op.data.contrat) : null,
-            projet: op.data.projet ? parseInt(op.data.projet) : null,
-            tache: op.data.tache || '',
-            type_pointage: op.data.type_pointage,
-            remarque: op.data.remarque || '',
-          };
-
-          if (op.type === 'CREATE_POINTAGE') {
-            url = '/pointages/';
-            method = 'POST';
-          } else if (op.type === 'UPDATE_POINTAGE') {
-            url = `/pointages/${op.pointageId}/`;
-            method = 'PUT';
-          }
-
-          const response = await AxiosInstance({
-            method: method,
-            url: url,
-            data: preparedData,
-            headers: { Authorization: `Token ${token}` }
-          });
-
-          if (response && response.status >= 200 && response.status < 300) {
-            await cacheService.removePendingOperation(op.id);
-            synced++;
-            console.log(`✅ Opération ${op.id} synchronisée`);
-          } else {
-            failed++;
-            console.log(`❌ Échec synchronisation ${op.id}: ${response?.status}`);
-          }
-
-        } catch (error) {
-          failed++;
-          console.error(`❌ Erreur sync opération ${op.id}:`, error);
-          
-          if (error.response?.status === 401) {
-            console.log('🔒 Token invalide - Déconnexion');
-            localStorage.removeItem('Token');
-            localStorage.removeItem('User');
-            navigate('/login');
-            setIsSyncing(false);
-            return;
-          }
-        }
-      }
-
-      console.log(`📊 Synchro terminée: ${synced} succès, ${failed} échecs`);
-      
-      // Notification de succès
-      if (synced > 0) {
-        setMessageType('success');
-        setMessage(`✅ ${synced} pointage(s) synchronisé(s) avec succès`);
-        setTimeout(() => setMessage(null), 4000);
-      }
-
-    } catch (error) {
-      console.error('❌ Erreur synchronisation:', error);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   // Surveiller la connexion
   useEffect(() => {
     const handleOnline = async () => {
       setIsOnline(true);
       console.log('📶 Connexion rétablie');
-      
-      // ✅ Synchronisation automatique
-      await syncPendingData();
-      
-      // Recharger les données
       await loadRelations();
     };
     
@@ -407,11 +289,6 @@ function PointageForm() {
     setContrats([]);
   };
 
-  // ✅ GÉNÉRER L'ID DE L'OPÉRATION
-  const generateOperationId = () => {
-    return Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -454,24 +331,20 @@ function PointageForm() {
       } catch (error) {
         console.error('❌ Erreur API:', error);
 
-        // ✅ Sauvegarde OFFLINE
+        // ✅ Sauvegarde OFFLINE via syncService
         if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || !navigator.onLine) {
           try {
-            const operationId = generateOperationId();
-            const operation = {
-              id: operationId,
-              type: isEdit ? 'UPDATE_POINTAGE' : 'CREATE_POINTAGE',
-              data: formData,
-              pointageId: isEdit ? id : undefined,
-              timestamp: new Date().toISOString(),
-              endpoint: isEdit ? `/pointages/${id}/` : '/pointages/',
-              method: isEdit ? 'PUT' : 'POST'
-            };
+            // ✅ Utiliser saveOffline de syncService
+            const result = await saveOffline('/pointages/', 'POST', {
+              employe: parseInt(formData.employe),
+              contrat: formData.contrat ? parseInt(formData.contrat) : null,
+              projet: formData.projet ? parseInt(formData.projet) : null,
+              tache: formData.tache || '',
+              type_pointage: formData.type_pointage,
+              remarque: formData.remarque || '',
+            });
             
-            // Sauvegarder l'opération
-            const pendingOps = await cacheService.getPendingOperations();
-            pendingOps.push(operation);
-            await cacheService.db.setItem('pendingOperations', pendingOps);
+            console.log('💾 Sauvegardé offline via syncService:', result);
             
             setMessageType('warning');
             setMessage('💾 Sauvegardé localement - Sync auto à la reconnexion');
