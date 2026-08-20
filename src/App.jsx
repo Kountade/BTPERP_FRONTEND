@@ -53,6 +53,14 @@ import PointageList from './components/grh/PointageList';
 import PointageForm from './components/grh/PointageForm';
 import PointageDetail from './components/grh/PointageDetail';
 
+import NoteDeFraisList from './components/grh/NoteDeFraisList';
+import NoteDeFraisForm from './components/grh/NoteDeFraisForm';
+import NoteDeFraisDetail from './components/grh/NoteDeFraisDetail';
+
+import DPAEList from './components/grh/DPAEList';
+import DPAEForm from './components/grh/DPAEForm';
+import DPAEDetail from './components/grh/DPAEDetail';
+
 function App() {
   const location = useLocation();
   
@@ -146,9 +154,7 @@ function App() {
 <Route path="/absences/create" element={<AbsenceForm />} />
 <Route path="/absences/edit/:id" element={<AbsenceForm />} />
 <Route path="/absences/:id" element={<AbsenceDetail />} />
-                {/* ==================== AUDIT ====================
-                <Route path="/audit" element={<AuditLog />} />
-                */}
+                {/* ==================== AUDIT ==================== */}
 
 
                 <Route path="/pointages" element={<PointageList />} />
@@ -157,7 +163,20 @@ function App() {
 <Route path="/pointages/:id" element={<PointageDetail />} />
 
                 {/* ==================== PARAMÈTRES ==================== */}
-                {/* ==================== COMPANY CONFIG ==================== */}
+
+                 {/* === RH - NOTES DE FRAIS === */}
+              <Route path="/notes-frais" element={<NoteDeFraisList />} />
+              <Route path="/notes-frais/create" element={<NoteDeFraisForm />} />
+              <Route path="/notes-frais/edit/:id" element={<NoteDeFraisForm />} />
+              <Route path="/notes-frais/:id" element={<NoteDeFraisDetail />} />
+
+
+                            {/* === RH - DPAE === */}
+              <Route path="/dpae" element={<DPAEList />} />
+              <Route path="/dpae/create" element={<DPAEForm />} />
+              <Route path="/dpae/edit/:id" element={<DPAEForm />} />
+              <Route path="/dpae/:id" element={<DPAEDetail />} />
+           
                
               </Route>
             </Routes>

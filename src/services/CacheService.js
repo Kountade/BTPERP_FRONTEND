@@ -20,12 +20,14 @@ class CacheService {
             AGENCES_LAST_UPDATE: 'agences_last_update',
             ROLES: 'roles',
             USERS: 'users',
-            EMPLOYES: 'employes_cache',        // ✅ NOUVEAU
-            CONTRATS: 'contrats_cache',         // ✅ NOUVEAU
-            SERVICES: 'services_cache',         // ✅ NOUVEAU
-            POSTES: 'postes_cache',             // ✅ NOUVEAU
-            PROJETS: 'projets_cache',           // ✅ NOUVEAU
-            COMPETENCES: 'competences_cache',   // ✅ NOUVEAU
+            EMPLOYES: 'employes_cache',
+            CONTRATS: 'contrats_cache',
+            SERVICES: 'services_cache',
+            POSTES: 'postes_cache',
+            PROJETS: 'projets_cache',
+            COMPETENCES: 'competences_cache',
+            DPAE: 'dpae_cache',
+            NOTES_FRAIS: 'notes_frais_cache',
             PENDING_OPERATIONS: 'pendingOperations',
         };
         this.initializePendingOperations();
@@ -251,6 +253,46 @@ class CacheService {
         }
     }
 
+    // ---- DPAE ----
+    async getCachedDPAE() {
+        try {
+            const dpae = await this.db.getItem(this.cacheKeys.DPAE);
+            return dpae || [];
+        } catch (error) {
+            console.error('Erreur récupération DPAE cache:', error);
+            return [];
+        }
+    }
+
+    async cacheDPAE(dpae) {
+        try {
+            await this.db.setItem(this.cacheKeys.DPAE, dpae);
+            console.log(`📄 ${dpae.length} DPAE mises en cache`);
+        } catch (error) {
+            console.error('Erreur cache DPAE:', error);
+        }
+    }
+
+    // ---- NOTES DE FRAIS ----
+    async getCachedNotesFrais() {
+        try {
+            const notes = await this.db.getItem(this.cacheKeys.NOTES_FRAIS);
+            return notes || [];
+        } catch (error) {
+            console.error('Erreur récupération notes de frais cache:', error);
+            return [];
+        }
+    }
+
+    async cacheNotesFrais(notes) {
+        try {
+            await this.db.setItem(this.cacheKeys.NOTES_FRAIS, notes);
+            console.log(`🧾 ${notes.length} notes de frais mises en cache`);
+        } catch (error) {
+            console.error('Erreur cache notes de frais:', error);
+        }
+    }
+
     // ✅ SAUVEGARDER UN UTILISATEUR LOCALEMENT
     async saveUserLocally(userData) {
         try {
@@ -288,7 +330,7 @@ class CacheService {
         }
     }
 
-    // ✅ SYNCHRONISER LES DONNÉES PENDING
+    // ✅ SYNCHRONISER LES DONNÉES PENDING - COMPLET
     async syncPendingData() {
         if (!this.isOnline) {
             console.log('📡 Hors ligne - Synchronisation impossible');
@@ -316,8 +358,10 @@ class CacheService {
                 let response;
                 let url = '';
                 let method = '';
+                let dataToSend = operation.data;
                 
                 switch (operation.type) {
+                    // === UTILISATEURS ===
                     case 'CREATE_USER':
                         url = '/register/';
                         method = 'POST';
@@ -326,6 +370,8 @@ class CacheService {
                         url = `/users/${operation.userId}/`;
                         method = 'PUT';
                         break;
+                    
+                    // === EMPLOYÉS ===
                     case 'CREATE_EMPLOYE':
                         url = '/employes/';
                         method = 'POST';
@@ -334,6 +380,8 @@ class CacheService {
                         url = `/employes/${operation.userId}/`;
                         method = 'PUT';
                         break;
+                    
+                    // === CONTRATS ===
                     case 'CREATE_CONTRAT':
                         url = '/contrats/';
                         method = 'POST';
@@ -342,6 +390,8 @@ class CacheService {
                         url = `/contrats/${operation.contratId}/`;
                         method = 'PUT';
                         break;
+                    
+                    // === POINTAGES ===
                     case 'CREATE_POINTAGE':
                         url = '/pointages/';
                         method = 'POST';
@@ -350,6 +400,8 @@ class CacheService {
                         url = `/pointages/${operation.pointageId}/`;
                         method = 'PUT';
                         break;
+                    
+                    // === HEURES TRAVAIL ===
                     case 'CREATE_HEURE_TRAVAIL':
                         url = '/heures-travail/';
                         method = 'POST';
@@ -358,6 +410,8 @@ class CacheService {
                         url = `/heures-travail/${operation.heureId}/`;
                         method = 'PUT';
                         break;
+                    
+                    // === ABSENCES ===
                     case 'CREATE_ABSENCE':
                         url = '/absences/';
                         method = 'POST';
@@ -366,6 +420,57 @@ class CacheService {
                         url = `/absences/${operation.absenceId}/`;
                         method = 'PUT';
                         break;
+                    
+                    // === NOTES DE FRAIS ===
+                    case 'CREATE_NOTE_FRAIS':
+                        url = '/notes-frais/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_NOTE_FRAIS':
+                        url = `/notes-frais/${operation.noteId}/`;
+                        method = 'PUT';
+                        break;
+                    
+                    // === DPAE ===
+                    case 'CREATE_DPAE':
+                        url = '/dpae/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_DPAE':
+                        url = `/dpae/${operation.dpaeId}/`;
+                        method = 'PUT';
+                        break;
+                    
+                    // === PLANNING ===
+                    case 'CREATE_PLANNING':
+                        url = '/planning/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_PLANNING':
+                        url = `/planning/${operation.planningId}/`;
+                        method = 'PUT';
+                        break;
+                    
+                    // === FORMATIONS ===
+                    case 'CREATE_FORMATION':
+                        url = '/formations/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_FORMATION':
+                        url = `/formations/${operation.formationId}/`;
+                        method = 'PUT';
+                        break;
+                    
+                    // === COMPÉTENCES ===
+                    case 'CREATE_COMPETENCE':
+                        url = '/competences/';
+                        method = 'POST';
+                        break;
+                    case 'UPDATE_COMPETENCE':
+                        url = `/competences/${operation.competenceId}/`;
+                        method = 'PUT';
+                        break;
+                    
                     default:
                         console.warn(`⚠️ Type d'opération inconnu: ${operation.type}`);
                         continue;
@@ -373,11 +478,40 @@ class CacheService {
 
                 console.log(`📤 ${method} ${url}`);
 
+                // ✅ Si c'est une absence, utiliser FormData
+                if (['CREATE_ABSENCE', 'UPDATE_ABSENCE'].includes(operation.type)) {
+                    const formData = new FormData();
+                    const data = operation.data;
+                    Object.keys(data).forEach(key => {
+                        if (data[key] !== null && data[key] !== undefined) {
+                            formData.append(key, data[key]);
+                        }
+                    });
+                    dataToSend = formData;
+                }
+
+                // ✅ Si c'est une note de frais, utiliser FormData
+                if (['CREATE_NOTE_FRAIS', 'UPDATE_NOTE_FRAIS'].includes(operation.type)) {
+                    const formData = new FormData();
+                    const data = operation.data;
+                    Object.keys(data).forEach(key => {
+                        if (data[key] !== null && data[key] !== undefined) {
+                            formData.append(key, data[key]);
+                        }
+                    });
+                    dataToSend = formData;
+                }
+
+                const headers = { Authorization: `Token ${token}` };
+                if (!['CREATE_ABSENCE', 'UPDATE_ABSENCE', 'CREATE_NOTE_FRAIS', 'UPDATE_NOTE_FRAIS'].includes(operation.type)) {
+                    headers['Content-Type'] = 'application/json';
+                }
+
                 response = await AxiosInstance({
                     method: method,
                     url: url,
-                    data: operation.data,
-                    headers: { Authorization: `Token ${token}` }
+                    data: dataToSend,
+                    headers: headers
                 });
 
                 if (response && response.status >= 200 && response.status < 300) {
@@ -462,6 +596,36 @@ class CacheService {
         } catch (error) {
             console.error('Erreur récupération clés cache:', error);
             return [];
+        }
+    }
+
+    // ✅ RÉCUPÉRER UNE OPÉRATION SPÉCIFIQUE
+    async getPendingOperation(id) {
+        try {
+            const ops = await this.getPendingOperations();
+            return ops.find(op => op.id === id) || null;
+        } catch (error) {
+            console.error('Erreur récupération opération:', error);
+            return null;
+        }
+    }
+
+    // ✅ METTRE À JOUR UNE OPÉRATION
+    async updatePendingOperation(id, updates) {
+        try {
+            const ops = await this.getPendingOperations();
+            const index = ops.findIndex(op => op.id === id);
+            if (index !== -1) {
+                ops[index] = { ...ops[index], ...updates };
+                await this.db.setItem(this.cacheKeys.PENDING_OPERATIONS, ops);
+                this.pendingOperations = ops;
+                console.log(`🔄 Opération ${id} mise à jour`);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Erreur mise à jour opération:', error);
+            return false;
         }
     }
 }
