@@ -190,8 +190,8 @@ function PointageDetail() {
           <div className="space-y-2">
             <p className="font-medium text-base">{pointage.employe_nom || 'Employé inconnu'}</p>
             <p className="text-sm text-base-content/60">ID: {pointage.employe}</p>
-            {pointage.contrat && (
-              <p className="text-sm text-base-content/60">Contrat: {pointage.contrat}</p>
+            {pointage.contrat_display && (
+              <p className="text-sm text-base-content/60">Contrat: {pointage.contrat_display}</p>
             )}
           </div>
         </div>
@@ -211,7 +211,7 @@ function PointageDetail() {
             </p>
             <p className="text-sm flex items-center gap-2">
               <Clock className="w-4 h-4 text-base-content/40" />
-              Heure: <span className="font-medium">{pointage.heure}</span>
+              Heure: <span className="font-medium">{pointage.heure || 'N/A'}</span>
             </p>
             <p className="text-sm flex items-center gap-2">
               <span className={`badge badge-${typeColor} badge-sm`}>

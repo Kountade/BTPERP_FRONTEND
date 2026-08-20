@@ -49,6 +49,10 @@ import AbsenceList from './components/grh/AbsenceList';
 import AbsenceForm from './components/grh/AbsenceForm';
 import AbsenceDetail from './components/grh/AbsenceDetail';
 
+import PointageList from './components/grh/PointageList';
+import PointageForm from './components/grh/PointageForm';
+import PointageDetail from './components/grh/PointageDetail';
+
 function App() {
   const location = useLocation();
   
@@ -145,6 +149,12 @@ function App() {
                 {/* ==================== AUDIT ====================
                 <Route path="/audit" element={<AuditLog />} />
                 */}
+
+
+                <Route path="/pointages" element={<PointageList />} />
+<Route path="/pointages/create" element={<PointageForm />} />
+<Route path="/pointages/edit/:id" element={<PointageForm />} />
+<Route path="/pointages/:id" element={<PointageDetail />} />
 
                 {/* ==================== PARAMÈTRES ==================== */}
                 {/* ==================== COMPANY CONFIG ==================== */}

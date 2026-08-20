@@ -1,7 +1,7 @@
 // src/components/rh/AbsenceForm.jsx
-// Formulaire d'absence
+// Formulaire d'absence - Version avec synchronisation via syncService
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   UserMinus, Save, X, RefreshCw, Wifi, WifiOff, AlertTriangle,
@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import AxiosInstance from '../AxiosInstance';
 import cacheService from '../../services/CacheService';
+// ✅ IMPORTER syncService
+import { saveOffline } from '../../services/syncService';
 
 function AbsenceForm() {
   const navigate = useNavigate();
@@ -52,14 +54,18 @@ function AbsenceForm() {
 
   // Surveiller la connexion
   useEffect(() => {
-    const handleOnline = () => {
+    const handleOnline = async () => {
       setIsOnline(true);
-      loadRelations();
+      console.log('📶 Connexion rétablie');
+      await loadRelations();
     };
+    
     const handleOffline = () => {
       setIsOnline(false);
+      console.log('📡 Mode hors ligne');
       loadFromCache();
     };
+    
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -68,17 +74,39 @@ function AbsenceForm() {
     };
   }, []);
 
-  // Charger depuis le cache
+  // ✅ Charger depuis le cache
   const loadFromCache = async () => {
     try {
-      const cachedEmployes = await cacheService.db.getItem('employes_cache');
-      if (cachedEmployes) setEmployes(cachedEmployes);
+      console.log('📡 Chargement depuis le cache...');
+      
+      const cachedEmployes = await cacheService.getCachedEmployes();
+      if (cachedEmployes && cachedEmployes.length > 0) {
+        setEmployes(cachedEmployes);
+        console.log('💾 Employés depuis le cache:', cachedEmployes.length);
+      }
+      
+      const cachedContrats = await cacheService.getCachedContrats();
+      if (cachedContrats && cachedContrats.length > 0) {
+        console.log('💾 Contrats depuis le cache (total):', cachedContrats.length);
+        
+        if (formData.employe) {
+          const filtered = cachedContrats.filter(c => c.employe === parseInt(formData.employe));
+          setContrats(filtered);
+          console.log('💾 Contrats filtrés pour employé:', filtered.length);
+        } else {
+          setContrats(cachedContrats);
+        }
+      } else {
+        console.log('⚠️ Aucun contrat en cache');
+        setContrats([]);
+      }
+      
     } catch (error) {
       console.error('❌ Erreur chargement cache:', error);
     }
   };
 
-  // Charger les relations
+  // ✅ Charger les relations depuis l'API
   const loadRelations = async () => {
     setLoadingRelations(true);
     try {
@@ -94,12 +122,35 @@ function AbsenceForm() {
         return;
       }
 
-      const employesRes = await AxiosInstance.get('/employes/', { 
-        headers: { Authorization: `Token ${token}` } 
-      });
+      console.log('📡 Chargement depuis l\'API...');
 
-      setEmployes(employesRes.data || []);
-      await cacheService.db.setItem('employes_cache', employesRes.data || []);
+      const [employesRes, contratsRes] = await Promise.all([
+        AxiosInstance.get('/employes/', { 
+          headers: { Authorization: `Token ${token}` } 
+        }),
+        AxiosInstance.get('/contrats/', { 
+          headers: { Authorization: `Token ${token}` } 
+        })
+      ]);
+
+      const employesData = employesRes.data || [];
+      const contratsData = contratsRes.data || [];
+
+      console.log('📊 API - Employés:', employesData.length);
+      console.log('📊 API - Contrats:', contratsData.length);
+
+      setEmployes(employesData);
+      
+      if (formData.employe) {
+        const filtered = contratsData.filter(c => c.employe === parseInt(formData.employe));
+        setContrats(filtered);
+      } else {
+        setContrats(contratsData);
+      }
+
+      await cacheService.cacheEmployes(employesData);
+      await cacheService.cacheContrats(contratsData);
+      console.log('✅ Données sauvegardées en cache');
 
     } catch (error) {
       console.error('❌ Erreur chargement relations:', error);
@@ -108,6 +159,56 @@ function AbsenceForm() {
       setLoadingRelations(false);
     }
   };
+
+  // ✅ Charger les contrats d'un employé (offline/online)
+  const loadContratsForEmploye = useCallback(async (employeId) => {
+    if (!employeId) {
+      setContrats([]);
+      return;
+    }
+
+    console.log(`🔍 Chargement des contrats pour l'employé ${employeId}...`);
+
+    if (navigator.onLine) {
+      try {
+        const token = localStorage.getItem('Token');
+        if (!token) return;
+
+        const response = await AxiosInstance.get(`/employes/${employeId}/contrats/`, {
+          headers: { Authorization: `Token ${token}` }
+        });
+        
+        const contratsData = response.data || [];
+        setContrats(contratsData);
+        console.log('📊 API - Contrats pour employé:', contratsData.length);
+        
+        const allContrats = await cacheService.getCachedContrats();
+        const updatedContrats = [...allContrats, ...contratsData];
+        await cacheService.cacheContrats(updatedContrats);
+        
+        return;
+      } catch (error) {
+        console.error('❌ Erreur chargement contrats API:', error);
+      }
+    }
+
+    try {
+      const cachedContrats = await cacheService.getCachedContrats();
+      console.log('💾 Contrats en cache (total):', cachedContrats.length);
+      
+      if (cachedContrats && cachedContrats.length > 0) {
+        const filtered = cachedContrats.filter(c => c.employe === parseInt(employeId));
+        setContrats(filtered);
+        console.log('💾 Contrats filtrés pour employé:', filtered.length);
+      } else {
+        console.log('⚠️ Aucun contrat en cache pour cet employé');
+        setContrats([]);
+      }
+    } catch (error) {
+      console.error('❌ Erreur chargement contrats cache:', error);
+      setContrats([]);
+    }
+  }, []);
 
   // Charger les données si édition
   useEffect(() => {
@@ -136,6 +237,10 @@ function AbsenceForm() {
             justificatif: null,
           });
 
+          if (data.employe) {
+            await loadContratsForEmploye(data.employe);
+          }
+
         } catch (error) {
           console.error('❌ Erreur chargement:', error);
           setMessageType('error');
@@ -148,37 +253,28 @@ function AbsenceForm() {
     } else {
       setLoadingData(false);
     }
-  }, [id, isEdit, navigate]);
+  }, [id, isEdit, navigate, loadContratsForEmploye]);
 
   // Charger les relations au montage
   useEffect(() => {
     loadRelations();
   }, []);
 
-  // Charger les contrats d'un employé
+  // Quand l'employé change, charger ses contrats
   useEffect(() => {
-    const loadContrats = async () => {
-      if (!formData.employe) {
-        setContrats([]);
-        return;
-      }
+    if (formData.employe) {
+      loadContratsForEmploye(formData.employe);
+    } else {
+      setContrats([]);
+    }
+  }, [formData.employe, loadContratsForEmploye]);
 
-      try {
-        const token = localStorage.getItem('Token');
-        if (!token) return;
-
-        const response = await AxiosInstance.get(`/employes/${formData.employe}/contrats/`, {
-          headers: { Authorization: `Token ${token}` }
-        });
-        setContrats(response.data || []);
-      } catch (error) {
-        console.error('❌ Erreur chargement contrats:', error);
-        setContrats([]);
-      }
-    };
-
-    loadContrats();
-  }, [formData.employe]);
+  // Quand la connexion change, recharger les contrats
+  useEffect(() => {
+    if (formData.employe && isOnline) {
+      loadContratsForEmploye(formData.employe);
+    }
+  }, [isOnline, formData.employe, loadContratsForEmploye]);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
@@ -199,6 +295,7 @@ function AbsenceForm() {
       motif: '',
       justificatif: null,
     });
+    setContrats([]);
   };
 
   const handleSubmit = async (e) => {
@@ -225,65 +322,81 @@ function AbsenceForm() {
       }
 
       let response;
-      if (isEdit) {
-        response = await AxiosInstance.put(`/absences/${id}/`, dataToSend, {
-          headers: { 
-            Authorization: `Token ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-      } else {
-        response = await AxiosInstance.post('/absences/', dataToSend, {
-          headers: { 
-            Authorization: `Token ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-      }
-
-      setMessageType('success');
-      setMessage(isEdit ? '✅ Absence modifiée avec succès' : '✅ Absence créée avec succès');
-      
-      if (!isEdit) resetForm();
-      setTimeout(() => navigate('/absences'), 1500);
-
-    } catch (error) {
-      console.error('❌ Erreur:', error);
-
-      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || !navigator.onLine) {
-        try {
-          await cacheService.addPendingOperation({
-            type: isEdit ? 'UPDATE_ABSENCE' : 'CREATE_ABSENCE',
-            data: formData,
-            absenceId: isEdit ? id : undefined
+      try {
+        if (isEdit) {
+          response = await AxiosInstance.put(`/absences/${id}/`, dataToSend, {
+            headers: { 
+              Authorization: `Token ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
           });
-          setMessageType('warning');
-          setMessage('💾 Sauvegardé localement - Sync auto à la reconnexion');
-          if (!isEdit) resetForm();
-          setTimeout(() => navigate('/absences'), 2000);
-        } catch (cacheError) {
-          setMessageType('error');
-          setMessage('❌ Erreur lors de la sauvegarde locale');
+        } else {
+          response = await AxiosInstance.post('/absences/', dataToSend, {
+            headers: { 
+              Authorization: `Token ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          });
         }
-        setLoading(false);
-        return;
-      }
 
-      if (error.response?.status === 401) {
-        setMessageType('error');
-        setMessage('🔒 Session expirée');
-        setTimeout(() => navigate('/login'), 1500);
-      } else if (error.response?.status === 400) {
-        setMessageType('error');
-        const errors = error.response.data;
-        const messages = Object.keys(errors).flatMap(key => 
-          Array.isArray(errors[key]) ? errors[key].map(e => `${key}: ${e}`) : `${key}: ${errors[key]}`
-        );
-        setMessage(`❌ ${messages.join(', ')}`);
-      } else {
-        setMessageType('error');
-        setMessage(`❌ ${error.message || 'Erreur inconnue'}`);
+        setMessageType('success');
+        setMessage(isEdit ? '✅ Absence modifiée avec succès' : '✅ Absence créée avec succès');
+        
+        if (!isEdit) resetForm();
+        setTimeout(() => navigate('/absences'), 1500);
+
+      } catch (error) {
+        console.error('❌ Erreur API:', error);
+
+        // ✅ Sauvegarde OFFLINE via syncService
+        if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || !navigator.onLine) {
+          try {
+            // ✅ Utiliser saveOffline de syncService
+            const result = await saveOffline('/absences/', 'POST', {
+              employe: parseInt(formData.employe),
+              contrat: formData.contrat ? parseInt(formData.contrat) : null,
+              type_absence: formData.type_absence,
+              date_debut: formData.date_debut,
+              date_fin: formData.date_fin,
+              motif: formData.motif || '',
+            });
+            
+            console.log('💾 Sauvegardé offline via syncService:', result);
+            
+            setMessageType('warning');
+            setMessage('💾 Sauvegardé localement - Sync auto à la reconnexion');
+            
+            if (!isEdit) resetForm();
+            setTimeout(() => navigate('/absences'), 2000);
+          } catch (cacheError) {
+            console.error('❌ Erreur sauvegarde locale:', cacheError);
+            setMessageType('error');
+            setMessage('❌ Erreur lors de la sauvegarde locale');
+          }
+          setLoading(false);
+          return;
+        }
+
+        if (error.response?.status === 401) {
+          setMessageType('error');
+          setMessage('🔒 Session expirée');
+          setTimeout(() => navigate('/login'), 1500);
+        } else if (error.response?.status === 400) {
+          setMessageType('error');
+          const errors = error.response.data;
+          const messages = Object.keys(errors).flatMap(key => 
+            Array.isArray(errors[key]) ? errors[key].map(e => `${key}: ${e}`) : `${key}: ${errors[key]}`
+          );
+          setMessage(`❌ ${messages.join(', ')}`);
+        } else {
+          setMessageType('error');
+          setMessage(`❌ ${error.message || 'Erreur inconnue'}`);
+        }
       }
+    } catch (error) {
+      console.error('❌ Erreur globale:', error);
+      setMessageType('error');
+      setMessage(`❌ ${error.message || 'Erreur inconnue'}`);
     }
     setLoading(false);
   };
@@ -394,9 +507,12 @@ function AbsenceForm() {
                     );
                   })}
                 </select>
+                {!isOnline && employes.length > 0 && (
+                  <p className="text-xs text-info mt-1">💾 {employes.length} employés depuis le cache</p>
+                )}
               </div>
 
-              {/* Contrat */}
+              {/* Contrat - Avec cache */}
               <div>
                 <label className="block text-sm font-medium mb-1">
                   <CheckCircle className="w-4 h-4 inline mr-1.5" />
@@ -412,9 +528,25 @@ function AbsenceForm() {
                   {contrats.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.situation_display || c.situation} - {c.date_embauche}
+                      {c.statut === 'actif' ? ' ✅' : ' ❌'}
                     </option>
                   ))}
                 </select>
+                {contrats.length === 0 && formData.employe && (
+                  <p className="text-xs text-warning mt-1">
+                    ⚠️ Aucun contrat trouvé pour cet employé
+                  </p>
+                )}
+                {!isOnline && contrats.length > 0 && (
+                  <p className="text-xs text-info mt-1">
+                    💾 {contrats.length} contrat(s) depuis le cache
+                  </p>
+                )}
+                {!isOnline && formData.employe && contrats.length === 0 && (
+                  <p className="text-xs text-error mt-1">
+                    ⚠️ Aucun contrat en cache. Vérifiez votre connexion.
+                  </p>
+                )}
               </div>
 
               {/* Type d'absence */}

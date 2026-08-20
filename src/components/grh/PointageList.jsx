@@ -1,5 +1,5 @@
 // src/components/rh/PointageList.jsx
-// Liste des pointages des employés
+// Liste des pointages des employés - Sans géolocalisation
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,8 +7,7 @@ import {
   Clock, Plus, Edit, Trash2, Eye, Search,
   ChevronDown, ChevronUp, RefreshCw, AlertTriangle,
   UserCircle, Building2, Calendar, Wifi, WifiOff,
-  MapPin, CheckCircle, XCircle, Users,
-  Filter, Download, Printer, Loader2
+  Filter, Loader2
 } from 'lucide-react';
 import AxiosInstance from '../AxiosInstance';
 
@@ -29,7 +28,6 @@ function PointageList() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Options
   const TYPE_CHOICES = [
     { value: 'arrivee', label: 'Arrivée' },
     { value: 'depart', label: 'Départ' },
@@ -38,7 +36,6 @@ function PointageList() {
     { value: 'heure_sup', label: 'Heure supplémentaire' }
   ];
 
-  // Surveiller la connexion
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -50,7 +47,6 @@ function PointageList() {
     };
   }, []);
 
-  // Charger les données
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -70,53 +66,31 @@ function PointageList() {
         })
       ]);
 
-      console.log('📊 Pointages chargés:', pointagesRes.data?.length || 0);
-      console.log('👤 Employés chargés:', employesRes.data?.length || 0);
-
       setPointages(pointagesRes.data || []);
       setEmployes(employesRes.data || []);
-      
-      // Sauvegarder en cache
-      try {
-        localStorage.setItem('pointages_cache', JSON.stringify(pointagesRes.data || []));
-      } catch (e) {
-        console.warn('Cache non disponible');
-      }
 
     } catch (error) {
       console.error('❌ Erreur chargement:', error);
       if (error.response?.status === 401) {
         navigate('/login');
       } else {
-        setError('Erreur lors du chargement des pointages: ' + (error.message || 'Erreur inconnue'));
-        // Essayer le cache
-        try {
-          const cachedData = localStorage.getItem('pointages_cache');
-          if (cachedData) {
-            setPointages(JSON.parse(cachedData));
-          }
-        } catch (e) {
-          setPointages([]);
-        }
+        setError('Erreur lors du chargement des pointages');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Rafraîchir
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await loadData();
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
-  // Charger au montage
   useEffect(() => {
     loadData();
   }, []);
 
-  // Filtrer les pointages
   const filteredPointages = pointages.filter(p => {
     const employeNom = (p.employe_nom || '').toLowerCase();
     const matchSearch = employeNom.includes(searchTerm.toLowerCase());
@@ -126,7 +100,6 @@ function PointageList() {
     return matchSearch && matchEmploye && matchType && matchDate;
   });
 
-  // Supprimer un pointage
   const handleDelete = async () => {
     if (!selectedPointage) return;
     setIsDeleting(true);
@@ -150,7 +123,6 @@ function PointageList() {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // Statistiques
   const stats = {
     total: pointages.length,
     arrivees: pointages.filter(p => p.type_pointage === 'arrivee').length,
@@ -192,8 +164,7 @@ function PointageList() {
   }
 
   return (
-    <div className="space-y-6 p-4">
-      {/* Header */}
+    <div className="space-y-6 p-4 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -224,7 +195,6 @@ function PointageList() {
         </div>
       </div>
 
-      {/* Statistiques */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="stat bg-base-100 rounded-lg shadow-sm p-4">
           <div className="stat-title text-xs">Total</div>
@@ -244,7 +214,6 @@ function PointageList() {
         </div>
       </div>
 
-      {/* Filtres */}
       <div className="flex flex-col sm:flex-row gap-4 bg-base-100 p-4 rounded-lg shadow-sm">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40" />
@@ -314,9 +283,7 @@ function PointageList() {
           <Clock className="w-16 h-16 text-base-content/20 mx-auto mb-4" />
           <h3 className="text-lg font-medium">Aucun pointage trouvé</h3>
           <p className="text-base-content/60 text-sm mt-1">
-            {searchTerm || filterEmploye !== 'all' || filterType !== 'all' || filterDate
-              ? 'Aucun pointage ne correspond à vos filtres'
-              : 'Commencez par créer votre premier pointage'}
+            Commencez par créer votre premier pointage
           </p>
           <Link to="/pointages/create" className="btn btn-primary mt-4 gap-2">
             <Plus className="w-5 h-5" />
@@ -333,7 +300,7 @@ function PointageList() {
             return (
               <div 
                 key={p.id} 
-                className={`bg-base-100 rounded-lg shadow-sm border border-base-200 overflow-hidden transition-all`}
+                className="bg-base-100 rounded-lg shadow-sm border border-base-200 overflow-hidden transition-all"
               >
                 <div 
                   className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-base-200/50 transition-colors"
@@ -414,10 +381,9 @@ function PointageList() {
                   </div>
                 </div>
 
-                {/* Détails étendus */}
                 {isExpanded && (
                   <div className="border-t border-base-200 p-4 bg-base-200/30">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <h4 className="text-xs font-semibold uppercase text-base-content/40 mb-2 flex items-center gap-1">
                           <UserCircle className="w-3 h-3" />
@@ -435,28 +401,6 @@ function PointageList() {
                         </h4>
                         <p className="text-sm">Projet: {p.projet_nom || 'Non spécifié'}</p>
                         <p className="text-sm">Tâche: {p.tache_nom || 'Non spécifiée'}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-semibold uppercase text-base-content/40 mb-2 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          Localisation
-                        </h4>
-                        {p.latitude && p.longitude ? (
-                          <>
-                            <p className="text-sm">Lat: {p.latitude}</p>
-                            <p className="text-sm">Lng: {p.longitude}</p>
-                            <a 
-                              href={`https://www.google.com/maps?q=${p.latitude},${p.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline"
-                            >
-                              Voir sur la carte →
-                            </a>
-                          </>
-                        ) : (
-                          <p className="text-sm text-base-content/40">Non géolocalisé</p>
-                        )}
                         {p.remarque && (
                           <p className="text-sm mt-2 text-base-content/60">Remarque: {p.remarque}</p>
                         )}
@@ -470,7 +414,6 @@ function PointageList() {
         </div>
       )}
 
-      {/* Modal de suppression */}
       {showDeleteModal && selectedPointage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-base-100 rounded-2xl shadow-xl max-w-md w-full p-6">
@@ -479,8 +422,7 @@ function PointageList() {
               <h3 className="text-xl font-bold">Confirmer la suppression</h3>
             </div>
             <p className="text-base-content/70">
-              Êtes-vous sûr de vouloir supprimer le pointage de 
-              <span className="font-semibold text-base-content"> "{selectedPointage.employe_nom}"</span> ?
+              Êtes-vous sûr de vouloir supprimer ce pointage ?
             </p>
             <p className="text-sm text-error/70 mt-2">
               ⚠️ Cette action est irréversible.
@@ -501,11 +443,7 @@ function PointageList() {
                 className="btn btn-error flex-1 gap-2"
                 disabled={isDeleting}
               >
-                {isDeleting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {isDeleting ? 'Suppression...' : 'Supprimer'}
               </button>
             </div>
