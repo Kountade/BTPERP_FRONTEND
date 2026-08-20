@@ -61,6 +61,13 @@ import DPAEList from './components/grh/DPAEList';
 import DPAEForm from './components/grh/DPAEForm';
 import DPAEDetail from './components/grh/DPAEDetail';
 
+import PlanningList from './components/grh/PlanningList';
+import PlanningForm from './components/grh/PlanningForm';
+
+import FormationList from './components/grh/FormationList';
+import FormationDetail from './components/grh/FormationDetail';
+import FormationForm from './components/grh/FormationForm';
+
 function App() {
   const location = useLocation();
   
@@ -177,6 +184,17 @@ function App() {
               <Route path="/dpae/edit/:id" element={<DPAEForm />} />
               <Route path="/dpae/:id" element={<DPAEDetail />} />
            
+
+           <Route path="/planning" element={<PlanningList />} />
+<Route path="/planning/create" element={<PlanningForm />} />
+<Route path="/planning/edit/:id" element={<PlanningForm />} />
+
+
+// Dans App.jsx
+<Route path="/formations" element={<FormationList />} />
+<Route path="/formations/create" element={<FormationForm />} />
+<Route path="/formations/edit/:id" element={<FormationForm />} />
+<Route path="/formations/:id" element={<FormationDetail />} />
                
               </Route>
             </Routes>
