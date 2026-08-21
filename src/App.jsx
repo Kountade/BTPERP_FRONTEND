@@ -80,6 +80,10 @@ import InteractionsList from './components/crm/InteractionsList';
 import InteractionForm from './components/crm/InteractionForm';
 import InteractionDetail from './components/crm/InteractionDetail';
 
+import AppelsOffresList from './components/crm/AppelsOffresList';
+import AppelOffreForm from './components/crm/AppelOffreForm';
+import AppelOffreDetail from './components/crm/AppelOffreDetail';
+
 function App() {
   const location = useLocation();
   
@@ -228,6 +232,12 @@ function App() {
 <Route path="/interactions/create" element={<InteractionForm />} />
 <Route path="/interactions/edit/:id" element={<InteractionForm />} />
 <Route path="/interactions/:id" element={<InteractionDetail />} />
+
+// ==================== CRM - APPELS D'OFFRES ====================
+<Route path="/appels-offres" element={<AppelsOffresList />} />
+<Route path="/appels-offres/create" element={<AppelOffreForm />} />
+<Route path="/appels-offres/edit/:id" element={<AppelOffreForm />} />
+<Route path="/appels-offres/:id" element={<AppelOffreDetail />} />
 
                
               </Route>
