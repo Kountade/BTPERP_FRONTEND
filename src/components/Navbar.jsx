@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - Version BTP COMPLÈTE AVEC OFFLINE & MENUS RH + CONTRATS
+// src/components/Navbar.jsx - Version BTP COMPLÈTE AVEC OFFLINE & MENUS RH + CONTRATS + CRM
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -160,6 +160,12 @@ import {
   // ✅ ICÔNE CONTRAT
   FileText as ContratIcon,
   FileCheck as ContratCheckIcon,
+  // ✅ ICÔNES CRM
+  Handshake as HandshakeIcon,
+  UserPlus as UserPlusIcon,
+  PhoneCall,
+  FileSpreadsheet as SpreadsheetIcon,
+  Star,
 } from 'lucide-react';
 
 import logo from '../assets/logo.svg';
@@ -210,6 +216,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
     'STOCKS & MATÉRIAUX': true,
     'ENGINS & ÉQUIPEMENTS': true,
     'RESSOURCES HUMAINES': true,
+    'CRM': true,
     'MON ESPACE': false
   });
   
@@ -249,6 +256,11 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
   const [pointagesAJour, setPointagesAJour] = useState(0);
   const [planningActif, setPlanningActif] = useState(0);
   const [contratsActifs, setContratsActifs] = useState(0);
+  
+  // ✅ ÉTATS CRM
+  const [clientsCount, setClientsCount] = useState(0);
+  const [leadsCount, setLeadsCount] = useState(0);
+  const [appelsOffresCount, setAppelsOffresCount] = useState(0);
 
   // ============================================================
   // RÉCUPÉRATION UTILISATEUR
@@ -532,6 +544,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
 
   const isAdmin = isPDG || isDirecteur;
   const isHR = isPDG || isDRH || isRH;
+  const isCommercialRole = isCommercial || isAdmin;
 
   const canViewChantiers = () => isPDG || isDirecteur || isChefChantier || isConducteur;
   const canViewStocks = () => isPDG || isDirecteur || isGestionnaireStock || isAcheteur;
@@ -540,6 +553,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
   const canViewAdmin = () => isPDG;
   const canViewComptabilite = () => isPDG || isComptable || isDirecteur;
   const canViewSecurite = () => isPDG || isHSE || isSecurite || isQualite;
+  const canViewCRM = () => isPDG || isDRH || isCommercialRole || isDirecteur;
 
   const roleConfig = getRoleConfig();
   const RoleIcon = roleConfig.icon;
@@ -663,9 +677,20 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
             const planningRes = await AxiosInstance.get(`/planning/actif/${params}`).catch(() => ({ data: [] }));
             setPlanningActif(planningRes.data?.length || 0);
 
-            // ✅ CHARGEMENT DES CONTRATS ACTIFS
             const contratsRes = await AxiosInstance.get(`/contrats/?statut=actif${params}`).catch(() => ({ data: [] }));
             setContratsActifs(contratsRes.data?.length || 0);
+          }
+
+          // ✅ CHARGEMENT DES DONNÉES CRM (sans /api)
+          if (canViewCRM()) {
+            const clientsRes = await AxiosInstance.get(`/clients/?actif=true${params}`).catch(() => ({ data: [] }));
+            setClientsCount(clientsRes.data?.length || 0);
+
+            const leadsRes = await AxiosInstance.get(`/leads/${params}`).catch(() => ({ data: [] }));
+            setLeadsCount(leadsRes.data?.length || 0);
+
+            const appelsRes = await AxiosInstance.get(`/appels-offres/${params}`).catch(() => ({ data: [] }));
+            setAppelsOffresCount(appelsRes.data?.length || 0);
           }
         }
         
@@ -716,7 +741,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
   };
 
   // ============================================================
-  // ✅ MENU ERP BTP - AVEC MENUS RH COMPLETS + CONTRATS
+  // ✅ MENU ERP BTP - AVEC CRM
   // ============================================================
 
   const menuSections = [
@@ -769,51 +794,50 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
         { id: 'carnet-entretien', text: 'Entretien', icon: BookOpen, path: '/carnet-entretien', permission: canViewEngins() }
       ]
     },
-    // ✅ SECTION RESSOURCES HUMAINES - COMPLÈTE AVEC CONTRATS
+    // ✅ SECTION RESSOURCES HUMAINES
     {
       name: 'RESSOURCES HUMAINES',
       icon: Users,
       permission: canViewRH(),
       items: [
-        // === ADMINISTRATION RH ===
         { id: 'employes', text: 'Employés', icon: Users, path: '/employes', permission: canViewRH() },
         { id: 'contrats', text: 'Contrats', icon: ContratIcon, path: '/contrats', permission: canViewRH(), badge: contratsActifs > 0 ? contratsActifs : 0 },
         { id: 'services', text: 'Services', icon: ServiceIcon, path: '/services', permission: canViewRH() },
         { id: 'postes', text: 'Postes', icon: BriefcaseIcon, path: '/postes', permission: canViewRH() },
         { id: 'competences', text: 'Compétences', icon: BadgeCheck, path: '/competences', permission: canViewRH() },
-        
-        // === PRÉSENCE & POINTAGE ===
         { id: 'pointages', text: 'Pointages', icon: TimeIcon, path: '/pointages', permission: canViewRH(), badge: pointagesAJour > 0 ? pointagesAJour : 0 },
         { id: 'employes-present', text: 'Présents', icon: UserCheckIcon, path: '/employes/presents', permission: canViewRH(), badge: employesPresent > 0 ? employesPresent : 0 },
         { id: 'heures-travail', text: 'Heures de Travail', icon: Timer, path: '/heures-travail', permission: canViewRH() },
-        
-        // === ABSENCES & CONGÉS ===
         { id: 'absences', text: 'Absences', icon: UserMinus, path: '/absences', permission: canViewRH(), badge: absencesEnCours > 0 ? absencesEnCours : 0 },
         { id: 'conges', text: 'Congés', icon: CalendarIcon, path: '/conges', permission: canViewRH() },
-        
-        // === PLANIFICATION ===
         { id: 'planning', text: 'Planning', icon: CalendarRange, path: '/planning', permission: canViewRH(), badge: planningActif > 0 ? planningActif : 0 },
         { id: 'planning-personnel', text: 'Planning Personnel', icon: CalendarClock, path: '/planning-personnel', permission: canViewRH() },
-        
-        // === DOCUMENTS & ADMINISTRATIF ===
         { id: 'dpae', text: 'DPAE', icon: DPAEIcon, path: '/dpae', permission: canViewRH(), badge: dpaeEnAttente > 0 ? dpaeEnAttente : 0 },
         { id: 'notes-frais', text: 'Notes de Frais', icon: FraisIcon, path: '/notes-frais', permission: canViewRH(), badge: notesFraisEnAttente > 0 ? notesFraisEnAttente : 0 },
-        
-        // === FORMATION & HABILITATIONS ===
         { id: 'formations', text: 'Formations', icon: GraduationCap, path: '/formations', permission: canViewRH() },
         { id: 'habilitations', text: 'Habilitations', icon: Award, path: '/habilitations', permission: canViewRH() },
-        
-        // === SANTÉ & SÉCURITÉ ===
         { id: 'visites-medicales', text: 'Visites Médicales', icon: Stethoscope, path: '/visites-medicales', permission: canViewRH(), badge: visitesMedicales > 0 ? visitesMedicales : 0 },
         { id: 'accidents-travail', text: 'Accidents', icon: AlertTriangle, path: '/accidents-travail', permission: canViewRH() },
-        
-        // === GESTION DES COMPÉTENCES ===
         { id: 'evaluations', text: 'Évaluations', icon: ClipboardList, path: '/evaluations', permission: canViewRH() },
         { id: 'objectifs', text: 'Objectifs', icon: Target, path: '/objectifs', permission: canViewRH() },
-        
-        // === RAPPORTS RH ===
         { id: 'rapports-rh', text: 'Rapports RH', icon: FileSpreadsheet, path: '/rapports-rh', permission: canViewRH() },
         { id: 'statistiques-rh', text: 'Statistiques RH', icon: ChartPie, path: '/statistiques-rh', permission: canViewRH() },
+      ]
+    },
+    // ✅ SECTION CRM
+    {
+      name: 'CRM',
+      icon: HandshakeIcon,
+      permission: canViewCRM(),
+      items: [
+        { id: 'clients', text: 'Clients', icon: Building2, path: '/clients', permission: canViewCRM(), badge: clientsCount > 0 ? clientsCount : 0 },
+        { id: 'clients-create', text: 'Nouveau client', icon: UserPlusIcon, path: '/clients/create', permission: canViewCRM() },
+        { id: 'leads', text: 'Prospects (Leads)', icon: UserPlusIcon, path: '/leads', permission: canViewCRM(), badge: leadsCount > 0 ? leadsCount : 0 },
+        { id: 'leads-create', text: 'Nouveau lead', icon: UserPlusIcon, path: '/leads/create', permission: canViewCRM() },
+        { id: 'appels-offres', text: 'Appels d\'offres', icon: FileText, path: '/appels-offres', permission: canViewCRM(), badge: appelsOffresCount > 0 ? appelsOffresCount : 0 },
+        { id: 'appels-offres-create', text: 'Nouvel appel d\'offres', icon: FileText, path: '/appels-offres/create', permission: canViewCRM() },
+        { id: 'interactions', text: 'Interactions', icon: PhoneCall, path: '/interactions', permission: canViewCRM() },
+        { id: 'interactions-create', text: 'Nouvelle interaction', icon: PhoneCall, path: '/interactions/create', permission: canViewCRM() },
       ]
     }
   ];
@@ -1020,9 +1044,8 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
               </div>
             </div>
 
-            {/* ✅ Centre - Date/Heure + INDICATEUR SYNC */}
+            {/* Centre - Date/Heure + INDICATEUR SYNC */}
             <div className="hidden lg:flex items-center gap-3">
-              {/* Date et Heure */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-content/10 backdrop-blur-sm">
                 <Calendar className="w-4 h-4 text-primary-content/80" />
                 <span className="text-sm font-medium text-primary-content">{formattedDate}</span>
@@ -1031,7 +1054,6 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
                 <span className="text-sm font-medium text-primary-content">{formattedTime}</span>
               </div>
 
-              {/* ✅ INDICATEUR SYNCHRONISATION - ENTRE DATE ET AGENCES */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-content/10 backdrop-blur-sm border border-primary-content/20">
                 {isOnline ? (
                   <Wifi className="w-4 h-4 text-success" />
@@ -1068,7 +1090,6 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
 
             {/* Actions droite */}
             <div className="flex items-center gap-2">
-              
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="p-2 rounded-lg text-primary-content hover:bg-primary-content/10 transition-colors"

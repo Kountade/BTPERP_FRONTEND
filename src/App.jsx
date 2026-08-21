@@ -68,6 +68,18 @@ import FormationList from './components/grh/FormationList';
 import FormationDetail from './components/grh/FormationDetail';
 import FormationForm from './components/grh/FormationForm';
 
+import ClientForm from './components/crm/ClientForm';
+import ClientsList from './components/crm/ClientsList';
+import ClientDetail from './components/crm/ClientDetail';
+
+import LeadsList from './components/crm/LeadsList';
+import LeadForm from './components/crm/LeadForm';
+import LeadDetail from './components/crm/LeadDetail';
+
+import InteractionsList from './components/crm/InteractionsList';
+import InteractionForm from './components/crm/InteractionForm';
+import InteractionDetail from './components/crm/InteractionDetail';
+
 function App() {
   const location = useLocation();
   
@@ -195,6 +207,28 @@ function App() {
 <Route path="/formations/create" element={<FormationForm />} />
 <Route path="/formations/edit/:id" element={<FormationForm />} />
 <Route path="/formations/:id" element={<FormationDetail />} />
+
+
+// CRM
+<Route path="/clients" element={<ClientsList />} />
+<Route path="/clients/create" element={<ClientForm />} />
+<Route path="/clients/edit/:id" element={<ClientForm />} />
+<Route path="/clients/:id" element={<ClientDetail />} />
+
+
+
+// ==================== CRM - LEADS ====================
+<Route path="/leads" element={<LeadsList />} />
+<Route path="/leads/create" element={<LeadForm />} />
+<Route path="/leads/edit/:id" element={<LeadForm />} />
+<Route path="/leads/:id" element={<LeadDetail />} />
+
+// ==================== CRM - INTERACTIONS ====================
+<Route path="/interactions" element={<InteractionsList />} />
+<Route path="/interactions/create" element={<InteractionForm />} />
+<Route path="/interactions/edit/:id" element={<InteractionForm />} />
+<Route path="/interactions/:id" element={<InteractionDetail />} />
+
                
               </Route>
             </Routes>
