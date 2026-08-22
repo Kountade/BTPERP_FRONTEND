@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - Version BTP COMPLÈTE AVEC OFFLINE & MENUS RH + CONTRATS + CRM
+// src/components/Navbar.jsx - Version BTP COMPLÈTE AVEC OFFLINE & MENUS RH + CONTRATS + CRM + PROJETS
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -166,6 +166,7 @@ import {
   PhoneCall,
   FileSpreadsheet as SpreadsheetIcon,
   Star,
+  Plus,                // Ajouté pour "Nouveau projet"
 } from 'lucide-react';
 
 import logo from '../assets/logo.svg';
@@ -626,10 +627,17 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
         if (token && AxiosInstance) {
           const params = currentAgence?.id ? `?agence_id=${currentAgence.id}` : '';
           
+          // Chargement des projets (chantiers) en cours
+          if (canViewChantiers()) {
+            try {
+              const projetsRes = await AxiosInstance.get(`/projets/${params}`).catch(() => ({ data: [] }));
+              const enCours = projetsRes.data?.filter(p => p.statut === 'encours' || p.statut === 'etude').length || 0;
+              setChantiersEnCours(enCours);
+            } catch (e) {}
+          }
+          
+          // Autres compteurs (sécurité, stocks, etc.)
           if (isAdmin) {
-            const chantiersRes = await AxiosInstance.get(`/chantiers/?status=en_cours${params}`).catch(() => ({ data: [] }));
-            setChantiersEnCours(chantiersRes.data?.length || 0);
-
             const securiteRes = await AxiosInstance.get(`/alertes-securite/?status=active${params}`).catch(() => ({ data: [] }));
             setAlertesSecurite(securiteRes.data?.length || 0);
 
@@ -681,7 +689,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
             setContratsActifs(contratsRes.data?.length || 0);
           }
 
-          // ✅ CHARGEMENT DES DONNÉES CRM (sans /api)
+          // ✅ CHARGEMENT DES DONNÉES CRM
           if (canViewCRM()) {
             const clientsRes = await AxiosInstance.get(`/clients/?actif=true${params}`).catch(() => ({ data: [] }));
             setClientsCount(clientsRes.data?.length || 0);
@@ -741,7 +749,7 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
   };
 
   // ============================================================
-  // ✅ MENU ERP BTP - AVEC CRM
+  // ✅ MENU ERP BTP - AVEC PROJETS / CHANTIERS
   // ============================================================
 
   const menuSections = [
@@ -754,17 +762,49 @@ const Navbar = ({ content, mode, toggleColorMode }) => {
         { id: 'analyses', text: 'Analyses', icon: BarChart3, path: '/analyses', permission: isAdmin }
       ]
     },
+    // ✅ SECTION CHANTIERS mise à jour avec Projets
     {
       name: 'CHANTIERS',
       icon: Construction,
       permission: canViewChantiers(),
       items: [
-        { id: 'chantiers', text: 'Chantiers', icon: Construction, path: '/chantiers', permission: canViewChantiers(), badge: chantiersEnCours > 0 ? chantiersEnCours : 0 },
-        { id: 'chantiers-en-cours', text: 'En Cours', icon: Construction, path: '/chantiers/en-cours', permission: canViewChantiers() },
-        { id: 'planning-chantiers', text: 'Planning', icon: Calendar, path: '/planning-chantiers', permission: isAdmin || isChefChantier },
-        { id: 'phases-travaux', text: 'Phases', icon: Layers, path: '/phases-travaux', permission: isAdmin || isChefChantier || isConducteur },
-        { id: 'suivi-avancement', text: 'Avancement', icon: Target, path: '/suivi-avancement', permission: isAdmin || isChefChantier || isConducteur },
-        { id: 'inspections', text: 'Inspections', icon: ClipboardCheck, path: '/inspections', permission: isAdmin || isChefChantier || isQualite, badge: inspectionsEnCours > 0 ? inspectionsEnCours : 0 }
+        {
+          id: 'projets',
+          text: 'Projets',
+          icon: Construction,
+          path: '/projets',
+          permission: canViewChantiers(),
+          badge: chantiersEnCours > 0 ? chantiersEnCours : 0
+        },
+        {
+          id: 'projets-create',
+          text: 'Nouveau projet',
+          icon: Plus,        // Utilisation de l'icône Plus importée
+          path: '/projets/create',
+          permission: canViewChantiers()
+        },
+        {
+          id: 'planning',
+          text: 'Planning',
+          icon: Calendar,
+          path: '/planning-chantiers',
+          permission: isAdmin || isChefChantier
+        },
+        {
+          id: 'phases',
+          text: 'Phases',
+          icon: Layers,
+          path: '/phases',
+          permission: isAdmin || isChefChantier || isConducteur
+        },
+        {
+          id: 'inspections',
+          text: 'Inspections',
+          icon: ClipboardCheck,
+          path: '/inspections',
+          permission: isAdmin || isChefChantier || isQualite,
+          badge: inspectionsEnCours > 0 ? inspectionsEnCours : 0
+        }
       ]
     },
     {

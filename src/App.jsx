@@ -84,6 +84,13 @@ import AppelsOffresList from './components/crm/AppelsOffresList';
 import AppelOffreForm from './components/crm/AppelOffreForm';
 import AppelOffreDetail from './components/crm/AppelOffreDetail';
 
+// Imports des composants Chantiers
+import ProjetsList from './components/chantiers/ProjetsList';
+import ProjetForm from './components/chantiers/ProjetForm';
+import ProjetDetail from './components/chantiers/ProjetDetail';
+import ProjetPdf from './components/chantiers/ProjetPdf';
+
+
 function App() {
   const location = useLocation();
   
@@ -238,6 +245,17 @@ function App() {
 <Route path="/appels-offres/create" element={<AppelOffreForm />} />
 <Route path="/appels-offres/edit/:id" element={<AppelOffreForm />} />
 <Route path="/appels-offres/:id" element={<AppelOffreDetail />} />
+
+
+
+// Dans le bloc des routes protégées
+// ==================== CHANTIERS / PROJETS ====================
+<Route path="/projets" element={<ProjetsList />} />
+<Route path="/projets/create" element={<ProjetForm />} />
+<Route path="/projets/edit/:id" element={<ProjetForm />} />
+<Route path="/projets/:id" element={<ProjetDetail />} />
+<Route path="/projets/pdf/:id" element={<ProjetPdf />} />
+
 
                
               </Route>
